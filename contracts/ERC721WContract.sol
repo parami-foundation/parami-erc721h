@@ -3,13 +3,15 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract ERC721WContract is ERC721Enumerable, ERC721Holder {
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     address wrappedContract;
     address creator;
 
-    mapping(uint256 => mapping(address=> bool)) tokenId2Address2Authroized;
+    mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthroizedAddresses;
     mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
 
     event TokenAuthorized (uint256 indexed tokenId, address indexed addr);
@@ -47,7 +49,7 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
     }
 
     modifier onlyAuthroized(uint256 tokenId) {
-        require(tokenId2Address2Authroized[tokenId][_msgSender()], "address should be authorized");
+        require(tokenId2AuthroizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
         _;
     }
 
@@ -63,22 +65,41 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
     }
 
     function authorize(uint256 tokenId, address authorizedAddress) public onlyOwner(tokenId) {
-        require(!tokenId2Address2Authroized[tokenId][authorizedAddress], "address already authorized");
+        require(!tokenId2AuthroizedAddresses[tokenId].contains(authorizedAddress), "address already authorized");
 
-        tokenId2Address2Authroized[tokenId][authorizedAddress] = true;
+        tokenId2AuthroizedAddresses[tokenId].add(authorizedAddress);
 
         emit TokenAuthorized(tokenId, authorizedAddress);
     }
 
-    function revoke(uint256 tokenId) public onlyOwner(tokenId) {
-        tokenId2Address2Authroized[tokenId][_msgSender()] = false;
-        delete tokenId2Address2Value[tokenId][_msgSender()];
+    function revoke(uint256 tokenId, address addr) public onlyOwner(tokenId) {
+        tokenId2AuthroizedAddresses[tokenId].remove(addr);
+        delete tokenId2Address2Value[tokenId][addr];
 
-        emit TokenRevoked(tokenId, msg.sender);
+        emit TokenRevoked(tokenId, addr);
+    }
+
+    function revokeAll(uint256 tokenId) public onlyOwner(tokenId) {
+        for (uint256 i = tokenId2AuthroizedAddresses[tokenId].length() - 1;i > 0; i--) {
+            address addr = tokenId2AuthroizedAddresses[tokenId].at(i);
+            tokenId2AuthroizedAddresses[tokenId].remove(addr);
+            delete tokenId2Address2Value[tokenId][addr];
+
+            emit TokenRevoked(tokenId, addr);
+        }
+
+        if (tokenId2AuthroizedAddresses[tokenId].length() > 0) {
+            address addr = tokenId2AuthroizedAddresses[tokenId].at(0);
+            tokenId2AuthroizedAddresses[tokenId].remove(addr);
+            delete tokenId2Address2Value[tokenId][addr];
+
+            emit TokenRevoked(tokenId, addr);
+
+        }
     }
 
     function isAddressAuthroized(uint256 tokenId, address addr) public view returns (bool) {
-        return tokenId2Address2Authroized[tokenId][addr];
+        return tokenId2AuthroizedAddresses[tokenId].contains(addr);
     }
 
     // ======= start wrap
@@ -89,17 +110,23 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
 
         (IERC721)(wrappedContract).safeTransferFrom(_msgSender(), address(this), tokenId);
 
-        _safeMint(_msgSender(), tokenId);
+        if (_exists(tokenId) && ownerOf(tokenId) == address(this)) {
+            _safeTransfer(address(this), _msgSender(), tokenId, "");
+        } else {
+            _safeMint(_msgSender(), tokenId);
+        }
 
         emit TokenWrapped(tokenId);
     }
 
     function unwrap(uint256 tokenId) public onlyOwner(tokenId) {
+        (IERC721)(wrappedContract).safeTransferFrom(address(this), _msgSender(), tokenId);
+
+        if (tokenId2AuthroizedAddresses[tokenId].length() != 0) {
+            revokeAll(tokenId);
+        }
 
         safeTransferFrom(_msgSender(), address(this), tokenId);
-        (IERC721)(wrappedContract).safeTransferFrom(address(this), _msgSender(), tokenId);
-        //we should clear metadata and clear authroized address?
-
         emit TokenUnwrapped(tokenId);
     }
 
@@ -111,6 +138,11 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
 
     function getCreator() public view returns (address) {
         return creator;
+    }
+
+    // !!expensive, should call only when no gas is needed;
+    function getAuthroizedAddresses(uint256 tokenId) external view returns (address[] memory) {
+        return tokenId2AuthroizedAddresses[tokenId].values();
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -126,4 +158,7 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
             super.supportsInterface(interfaceId);
     }
 
+    function tokenURI(uint256 tokenId) public view override returns(string memory) {
+        return (IERC721Metadata)(wrappedContract).tokenURI(tokenId);
+    }
 }
