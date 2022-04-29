@@ -18,4 +18,9 @@ contract TestingERC721Contract is ERC721Enumerable {
     function tokenURI(uint256 tokenId) public pure override returns(string memory) {
         return string(bytes.concat(bytes("baseUrl"), bytes(Strings.toString(tokenId))));
     }
+
+    function contractURI() public view returns (string memory) {
+        return "testing";
+    }
+
 }

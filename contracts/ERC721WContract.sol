@@ -4,15 +4,18 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ERC721WContract is ERC721Enumerable, ERC721Holder {
+contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    address wrappedContract;
-    address creator;
+    address private wrappedContract;
+    address private creator;
 
     mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthroizedAddresses;
     mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
+
+    string private _contractURI;
 
     event TokenAuthorized (uint256 indexed tokenId, address indexed addr);
 
@@ -25,12 +28,13 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
     event TokenUnwrapped (uint256 indexed tokenId);
 
     constructor(string memory name, string memory symbol,
-                address _wrappedContract, address _creator) ERC721(name, symbol) {
+                address _wrappedContract, address _creator,
+                string memory contractURI) ERC721(name, symbol) {
         require(
             (ERC165)(_wrappedContract).supportsInterface(
                 type(IERC721).interfaceId
             ),
-            "not support IERC721"
+            "IERC721"
         );
         require(
             (ERC165)(_wrappedContract).supportsInterface(
@@ -41,9 +45,12 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
 
         wrappedContract = _wrappedContract;
         creator = _creator;
+        _contractURI = contractURI;
+
+        _transferOwnership(_creator);
     }
 
-    modifier onlyOwner(uint256 tokenId) {
+    modifier onlyTokenOwner(uint256 tokenId) {
         require(_msgSender() == ownerOf(tokenId), "should be the token owner");
         _;
     }
@@ -64,7 +71,7 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
         return tokenId2Address2Value[tokenId][addr];
     }
 
-    function authorize(uint256 tokenId, address authorizedAddress) public onlyOwner(tokenId) {
+    function authorize(uint256 tokenId, address authorizedAddress) public onlyTokenOwner(tokenId) {
         require(!tokenId2AuthroizedAddresses[tokenId].contains(authorizedAddress), "address already authorized");
 
         tokenId2AuthroizedAddresses[tokenId].add(authorizedAddress);
@@ -72,14 +79,14 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
         emit TokenAuthorized(tokenId, authorizedAddress);
     }
 
-    function revoke(uint256 tokenId, address addr) public onlyOwner(tokenId) {
+    function revoke(uint256 tokenId, address addr) public onlyTokenOwner(tokenId) {
         tokenId2AuthroizedAddresses[tokenId].remove(addr);
         delete tokenId2Address2Value[tokenId][addr];
 
         emit TokenRevoked(tokenId, addr);
     }
 
-    function revokeAll(uint256 tokenId) public onlyOwner(tokenId) {
+    function revokeAll(uint256 tokenId) public onlyTokenOwner(tokenId) {
         for (uint256 i = tokenId2AuthroizedAddresses[tokenId].length() - 1;i > 0; i--) {
             address addr = tokenId2AuthroizedAddresses[tokenId].at(i);
             tokenId2AuthroizedAddresses[tokenId].remove(addr);
@@ -119,7 +126,7 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
         emit TokenWrapped(tokenId);
     }
 
-    function unwrap(uint256 tokenId) public onlyOwner(tokenId) {
+    function unwrap(uint256 tokenId) public onlyTokenOwner(tokenId) {
         (IERC721)(wrappedContract).safeTransferFrom(address(this), _msgSender(), tokenId);
 
         if (tokenId2AuthroizedAddresses[tokenId].length() != 0) {
@@ -160,5 +167,13 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder {
 
     function tokenURI(uint256 tokenId) public view override returns(string memory) {
         return (IERC721Metadata)(wrappedContract).tokenURI(tokenId);
+    }
+
+    function contractURI() public view returns (string memory) {
+        return _contractURI;
+    }
+
+    function setContractURI(string calldata uri) public onlyOwner {
+        _contractURI = uri;
     }
 }

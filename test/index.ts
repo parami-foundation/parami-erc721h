@@ -22,7 +22,7 @@ describe("ERC721W", function () {
         erc721 = await testingErc721ContractFactory.deploy();
         await erc721.deployed();
 
-        await registry.createERC721wContract(erc721.address);
+        await registry.createERC721wContract(erc721.address, "initialURI");
 
         const getAddressOfWrapper = registry.getERC721wAddressFor(erc721.address);
         wrapper = await ethers.getContractAt("ERC721WContract", await getAddressOfWrapper);
@@ -88,6 +88,9 @@ describe("ERC721W", function () {
             await expect(wrapper.connect(addr1).setValue(tokenId, "value")).to.be.revertedWith("address should be authorized");
         });
 
+        it("Should be able to revoke all", async() => {
+        });
+
         it("Should be able to unwrap", async() => {
 
             await wrapper.authorize(tokenId, addr1.address);
@@ -130,6 +133,23 @@ describe("ERC721W", function () {
             const originalTokenUri = await erc721.tokenURI(tokenId);
             expect(await wrapper.tokenURI(tokenId)).equals(originalTokenUri);
         });
+
+        it("Should display contract URI", async() => {
+            expect(await wrapper.contractURI()).to.be.equal("initialURI");
+        });
+
+        it("Should revert when unwrap if not token owner", async() => {
+            await wrapper.authorize(tokenId, addr1.address);
+            await expect(wrapper.connect(addr1).unwrap(tokenId)).to.be.revertedWith("should be the token owner");
+        })
+
+        it("Should be able to set contract uri", async() => {
+            await expect(wrapper.connect(addr1).setContractURI("addr1")).to.be.reverted;
+
+            await wrapper.setContractURI("owner");
+            expect(await wrapper.contractURI()).to.be.equal("owner");
+        });
+
     });
 
 
