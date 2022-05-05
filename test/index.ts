@@ -43,6 +43,10 @@ describe("ERC721W", function () {
         expect(await wrapper.getCreator()).to.equal(owner.address);
     });
 
+    it("Should get all wrapped addresses", async function () {
+        expect(await registry.getWrappedContracts()).contains(erc721.address);
+    });
+
     it("Should revert when not approved", async () => {
         await expect(wrapper.wrap(tokenId)).to.be.revertedWith("should approve tokenId first");
     });

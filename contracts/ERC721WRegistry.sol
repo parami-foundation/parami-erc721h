@@ -4,9 +4,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./ERC721WContract.sol";
 
 contract ERC721WRegistry {
+
+    using EnumerableSet for EnumerableSet.AddressSet;
+    EnumerableSet.AddressSet private wrappedContracts;
 
     mapping(address=>address) private erc721wAddresses;
 
@@ -40,7 +44,13 @@ contract ERC721WRegistry {
                                                       msg.sender,
                                                       contractURI);
 
+        wrappedContracts.add(wrapped);
         erc721wAddresses[wrapped] = address(created);
+    }
+
+    // !!expensive, should call only when no gas is needed;
+    function getWrappedContracts() external view returns (address[] memory) {
+        return wrappedContracts.values();
     }
 
     function concatString(string memory a, string memory b) internal pure returns (string memory) {
