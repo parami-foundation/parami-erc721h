@@ -170,6 +170,9 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     function contractURI() public view returns (string memory) {
+        // throw error to make opensea ignore empty contractURI
+        require(bytes(_contractURI).length != 0, "_contractURI is empty");
+
         return _contractURI;
     }
 
