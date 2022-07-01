@@ -14,12 +14,22 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
+
+  const ERC721HCollectionFactory = await ethers.getContractFactory("ERC721HCollection");
+  const erc721HCollection = await ERC721HCollectionFactory.deploy();
+
   const ERC721WRegistryFactory= await ethers.getContractFactory("ERC721WRegistry");
   const erc721WRegistry = await ERC721WRegistryFactory.deploy();
 
-  await erc721WRegistry.deployed();
+  const ParamiLinkFactory = await ethers.getContractFactory("ParamiLink");
+  const paramiLink = await ParamiLinkFactory.deploy();
 
-  console.log("erc721wregistry deployed to:", erc721WRegistry.address);
+  await erc721WRegistry.deployed();
+  await paramiLink.deployed();
+
+  console.log("erc721wregistry deployed to:", erc721HCollection.address);
+  console.log("erc721hCollection deployed to:", erc721HCollection.address);
+  console.log("parami link deployed to:", paramiLink.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
