@@ -20,19 +20,19 @@ interface IERC721H {
 
     /**
      * @dev
-     * Authorize a hyperlink slot on `tokenId` to address `to}`.
-     * Indeed slot is an entry in a map whose key is address `to`.
-     * Only the address `to` can manage the specific slot.
+     * Authorize a hyperlink slot on `tokenId` to address `slotManagerAddr`.
+     * Indeed slot is an entry in a map whose key is address `slotManagerAddr`.
+     * Only the address `slotManagerAddr` can manage the specific slot.
      * This method will emit SlotAuthorizationCreated event
      */
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) external;
 
     /**
      * @dev
-     * Revoke the authorization of the slot indicated by `to` on token `tokenId`
+     * Revoke the authorization of the slot indicated by `slotManagerAddr` on token `tokenId`
      * This method will emit SlotAuthorizationRevoked event
      */
-    function revokeAuthorization(uint256 tokenId, address to) external;
+    function revokeAuthorization(uint256 tokenId, address slotManagerAddr) external;
 
     /**
      * @dev
