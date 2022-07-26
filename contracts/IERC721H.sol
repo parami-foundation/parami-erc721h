@@ -43,20 +43,20 @@ interface IERC721H {
 
     /**
      * @dev
-     * Set uri for a entry on a token, which is indicated by `tokenId` and `slotManagerAddr`
+     * Set uri for a slot on a token, which is indicated by `tokenId` and `slotManagerAddr`
      * Only the address with authorization through {authorizeSlotTo} can manipulate this slot.
      * This method will emit SlotUriUpdated event
      */
-    function setEntryUri(
+    function setSlotUri(
         uint256 tokenId,
         string calldata newUri
     ) external;
 
     /**
      * @dev
-     * returns the latest uri of an entry on a token, which is indicated by `tokenId`, `slotManagerAddr`
+     * returns the latest uri of an slot on a token, which is indicated by `tokenId`, `slotManagerAddr`
      */
-    function getEntryUri(uint256 tokenId, address slotManagerAddr)
+    function getSlotUri(uint256 tokenId, address slotManagerAddr)
         external
         view
         returns (string memory);

@@ -36,13 +36,13 @@ contract ERC721HContract is IERC721H, ERC721, Ownable {
         _;
     }
 
-    function setEntryUri(uint256 tokenId, string calldata value) override external onlySlotManager(tokenId) {
+    function setSlotUri(uint256 tokenId, string calldata value) override external onlySlotManager(tokenId) {
         tokenId2Address2Value[tokenId][_msgSender()] = value;
 
         emit SlotUriUpdated(tokenId, _msgSender(), value);
     }
 
-    function getEntryUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
+    function getSlotUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
         return tokenId2Address2Value[tokenId][slotManagerAddr];
     }
 

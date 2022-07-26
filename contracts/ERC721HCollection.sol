@@ -32,13 +32,13 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
         _;
     }
 
-    function setEntryUri(uint256 tokenId, string calldata value) override external onlySlotManager(tokenId) {
+    function setSlotUri(uint256 tokenId, string calldata value) override external onlySlotManager(tokenId) {
         tokenId2Address2Value[tokenId][_msgSender()] = value;
 
         emit SlotUriUpdated(tokenId, _msgSender(), value);
     }
 
-    function getEntryUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
+    function getSlotUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
         if (slotManagerAddr == _paramiLinkAddresses[_paramiLinkAddresses.length - 1]) {
             for (uint256 index = _paramiLinkAddresses.length - 1; index > 0; index--) {
                 string memory uri = tokenId2Address2Value[tokenId][_paramiLinkAddresses[index]];
