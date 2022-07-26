@@ -16,7 +16,6 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
 
     string private _imageURI;
     string private _name;
-    address[] private _paramiLinkAddresses;
 
     constructor() ERC721("Hyperlink NFT Collection", "HNFT") {}
 
@@ -26,9 +25,7 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     }
 
     modifier onlySlotManager(uint256 tokenId) {
-        if (_msgSender() != _paramiLinkAddresses[_paramiLinkAddresses.length - 1]) {
-            require(tokenId2AuthroizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
-        }
+        require(_msgSender() == ownerOf(tokenId) || tokenId2AuthroizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
         _;
     }
 
@@ -39,14 +36,6 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     }
 
     function getSlotUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
-        if (slotManagerAddr == _paramiLinkAddresses[_paramiLinkAddresses.length - 1]) {
-            for (uint256 index = _paramiLinkAddresses.length - 1; index > 0; index--) {
-                string memory uri = tokenId2Address2Value[tokenId][_paramiLinkAddresses[index]];
-                if (bytes(uri).length > 0) {
-                    return uri;
-                }
-            }
-        }
         return tokenId2Address2Value[tokenId][slotManagerAddr];
     }
 
@@ -95,11 +84,20 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
         return tokenId2AuthroizedAddresses[tokenId].values();
     }
 
+    function _mintToken(uint256 tokenId, string calldata imageUri) private {
+        _safeMint(msg.sender, tokenId);
+        tokenId2ImageUri[tokenId] = imageUri;
+    }
+
     function mint(string calldata imageUri) external {
         uint256 tokenId = totalSupply() + 1;
-        _safeMint(msg.sender, tokenId);
-        _authorizeSlotTo(tokenId, msg.sender);
-        tokenId2ImageUri[tokenId] = imageUri;
+        _mintToken(tokenId, imageUri);
+    }
+
+    function mintAndAuthorizeTo(string calldata imageUri, address slotManagerAddr) external {
+        uint256 tokenId = totalSupply() + 1;
+        _mintToken(tokenId, imageUri);
+        _authorizeSlotTo(tokenId, slotManagerAddr);
     }
 
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
@@ -136,9 +134,5 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
 
     function setImageURI(uint256 tokenId, string calldata uri) external onlyTokenOwner(tokenId) {
         tokenId2ImageUri[tokenId] = uri;
-    }
-
-    function setParamiLinkAddress(address paramiLinkAddr) external onlyOwner {
-        _paramiLinkAddresses.push(paramiLinkAddr);
     }
 }
