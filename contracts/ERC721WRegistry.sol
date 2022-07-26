@@ -20,7 +20,7 @@ contract ERC721WRegistry {
         return erc721wAddresses[wrapped];
     }
 
-    function createERC721wContract(address wrapped, string calldata contractURI) public {
+    function createERC721wContract(address wrapped) public {
         require(erc721wAddresses[wrapped] == address(0), "erc721w address exists");
 
         require(
@@ -41,8 +41,7 @@ contract ERC721WRegistry {
         ERC721WContract created = new ERC721WContract(concatString("Wrapped ", erc721MetadataAddr.name()),
                                                       concatString("W", erc721MetadataAddr.symbol()),
                                                       wrapped,
-                                                      msg.sender,
-                                                      contractURI);
+                                                      msg.sender);
 
         wrappedContracts.add(wrapped);
         erc721wAddresses[wrapped] = address(created);

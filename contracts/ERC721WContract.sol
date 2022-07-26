@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./IERC721H.sol";
 
-contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
+contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address private wrappedContract;
@@ -15,21 +16,12 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
     mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthroizedAddresses;
     mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
 
-    string private _contractURI;
-
-    event TokenAuthorized (uint256 indexed tokenId, address indexed addr);
-
-    event TokenRevoked (uint256 indexed tokenId, address indexed addr);
-
-    event TokenValueUpdated (uint256 indexed tokenId, address indexed addr, string value);
-
     event TokenWrapped (uint256 indexed tokenId);
 
     event TokenUnwrapped (uint256 indexed tokenId);
 
     constructor(string memory name, string memory symbol,
-                address _wrappedContract, address _creator,
-                string memory contractURI) ERC721(name, symbol) {
+                address _wrappedContract, address _creator) ERC721(name, symbol) {
         require(
             (ERC165)(_wrappedContract).supportsInterface(
                 type(IERC721).interfaceId
@@ -45,7 +37,6 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
 
         wrappedContract = _wrappedContract;
         creator = _creator;
-        _contractURI = contractURI;
 
         _transferOwnership(_creator);
     }
@@ -55,44 +46,46 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
         _;
     }
 
-    modifier onlyAuthroized(uint256 tokenId) {
-        require(tokenId2AuthroizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
+    modifier onlySlotManager(uint256 tokenId) {
+        require(_msgSender() == ownerOf(tokenId) || tokenId2AuthroizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
         _;
     }
 
-    // ======= start entry
-    function setValue(uint256 tokenId, string calldata value) public onlyAuthroized(tokenId) {
+    function setSlotUri(uint256 tokenId, string calldata value) override external onlySlotManager(tokenId) {
         tokenId2Address2Value[tokenId][_msgSender()] = value;
 
-        emit TokenValueUpdated(tokenId, _msgSender(), value);
+        emit SlotUriUpdated(tokenId, _msgSender(), value);
     }
 
-    function getValue(uint256 tokenId, address addr) public view returns (string memory) {
-        return tokenId2Address2Value[tokenId][addr];
+    function getSlotUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
+        return tokenId2Address2Value[tokenId][slotManagerAddr];
     }
 
-    function authorize(uint256 tokenId, address authorizedAddress) public onlyTokenOwner(tokenId) {
-        require(!tokenId2AuthroizedAddresses[tokenId].contains(authorizedAddress), "address already authorized");
-
-        tokenId2AuthroizedAddresses[tokenId].add(authorizedAddress);
-
-        emit TokenAuthorized(tokenId, authorizedAddress);
+    function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
+        require(!tokenId2AuthroizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
+        
+        _authorizeSlotTo(tokenId, slotManagerAddr);
+    }
+    
+    function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
+        tokenId2AuthroizedAddresses[tokenId].add(slotManagerAddr);
+        emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
     }
 
-    function revoke(uint256 tokenId, address addr) public onlyTokenOwner(tokenId) {
-        tokenId2AuthroizedAddresses[tokenId].remove(addr);
-        delete tokenId2Address2Value[tokenId][addr];
+    function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
+        tokenId2AuthroizedAddresses[tokenId].remove(slotManagerAddr);
+        delete tokenId2Address2Value[tokenId][slotManagerAddr];
 
-        emit TokenRevoked(tokenId, addr);
+        emit SlotAuthorizationRevoked(tokenId, slotManagerAddr);
     }
 
-    function revokeAll(uint256 tokenId) public onlyTokenOwner(tokenId) {
+    function revokeAllAuthorizations(uint256 tokenId) override public onlyTokenOwner(tokenId) {
         for (uint256 i = tokenId2AuthroizedAddresses[tokenId].length() - 1;i > 0; i--) {
             address addr = tokenId2AuthroizedAddresses[tokenId].at(i);
             tokenId2AuthroizedAddresses[tokenId].remove(addr);
             delete tokenId2Address2Value[tokenId][addr];
 
-            emit TokenRevoked(tokenId, addr);
+            emit SlotAuthorizationRevoked(tokenId, addr);
         }
 
         if (tokenId2AuthroizedAddresses[tokenId].length() > 0) {
@@ -100,16 +93,13 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
             tokenId2AuthroizedAddresses[tokenId].remove(addr);
             delete tokenId2Address2Value[tokenId][addr];
 
-            emit TokenRevoked(tokenId, addr);
-
+            emit SlotAuthorizationRevoked(tokenId, addr);
         }
     }
 
-    function isAddressAuthroized(uint256 tokenId, address addr) public view returns (bool) {
+    function isSlotManager(uint256 tokenId, address addr) public view returns (bool) {
         return tokenId2AuthroizedAddresses[tokenId].contains(addr);
     }
-
-    // ======= start wrap
 
     function wrap(uint256 tokenId) public {
         require((IERC721)(wrappedContract).ownerOf(tokenId) == _msgSender(), "should own tokenId");
@@ -130,14 +120,12 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
         (IERC721)(wrappedContract).safeTransferFrom(address(this), _msgSender(), tokenId);
 
         if (tokenId2AuthroizedAddresses[tokenId].length() != 0) {
-            revokeAll(tokenId);
+            revokeAllAuthorizations(tokenId);
         }
 
         safeTransferFrom(_msgSender(), address(this), tokenId);
         emit TokenUnwrapped(tokenId);
     }
-
-    // ======= start meta data views
 
     function getWrappedContract() public view returns (address) {
         return wrappedContract;
@@ -148,7 +136,7 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     // !!expensive, should call only when no gas is needed;
-    function getAuthroizedAddresses(uint256 tokenId) external view returns (address[] memory) {
+    function getSlotManagers(uint256 tokenId) external view returns (address[] memory) {
         return tokenId2AuthroizedAddresses[tokenId].values();
     }
 
@@ -167,16 +155,5 @@ contract ERC721WContract is ERC721Enumerable, ERC721Holder, Ownable {
 
     function tokenURI(uint256 tokenId) public view override returns(string memory) {
         return (IERC721Metadata)(wrappedContract).tokenURI(tokenId);
-    }
-
-    function contractURI() public view returns (string memory) {
-        // throw error to make opensea ignore empty contractURI
-        require(bytes(_contractURI).length != 0, "_contractURI is empty");
-
-        return _contractURI;
-    }
-
-    function setContractURI(string calldata uri) public onlyOwner {
-        _contractURI = uri;
     }
 }
