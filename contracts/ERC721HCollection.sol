@@ -135,4 +135,13 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     function setImageURI(uint256 tokenId, string calldata uri) external onlyTokenOwner(tokenId) {
         tokenId2ImageUri[tokenId] = uri;
     }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721Enumerable)
+        returns (bool)
+    {
+        return interfaceId == type(IERC721H).interfaceId || super.supportsInterface(interfaceId);
+    }
 }

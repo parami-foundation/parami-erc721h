@@ -147,6 +147,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
         returns (bool)
     {
         return
+            interfaceId == type(IERC721H).interfaceId ||
             interfaceId == type(IERC721).interfaceId ||
             interfaceId == type(IERC721Receiver).interfaceId ||
             interfaceId == type(IERC721Enumerable).interfaceId ||
