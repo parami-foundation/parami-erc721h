@@ -15,7 +15,6 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     mapping(uint256 => string) tokenId2ImageUri;
 
     string private _imageURI;
-    string private _name;
 
     constructor() ERC721("Hyperlink NFT Collection", "HNFT") {}
 
@@ -115,8 +114,7 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
                             abi.encodePacked(
                                 '{"name":"',
                                 abi.encodePacked(
-                                    _name,
-                                    " # ",
+                                    "Hyperlink NFT Collection # ",
                                     Strings.toString(_tokenId)
                                 ),
                                 '",',
