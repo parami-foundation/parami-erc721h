@@ -2,44 +2,21 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IERC721H.sol";
+import "./base64.sol";
 
-contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
+contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
-
-    address private wrappedContract;
-    address private creator;
 
     mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthroizedAddresses;
     mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
+    mapping(uint256 => string) tokenId2ImageUri;
 
-    event TokenWrapped (uint256 indexed tokenId);
+    string private _imageURI;
 
-    event TokenUnwrapped (uint256 indexed tokenId);
-
-    constructor(string memory name, string memory symbol,
-                address _wrappedContract, address _creator) ERC721(name, symbol) {
-        require(
-            (ERC165)(_wrappedContract).supportsInterface(
-                type(IERC721).interfaceId
-            ),
-            "IERC721"
-        );
-        require(
-            (ERC165)(_wrappedContract).supportsInterface(
-                type(IERC721Metadata).interfaceId
-            ),
-            "not support IERC721Metadata"
-        );
-
-        wrappedContract = _wrappedContract;
-        creator = _creator;
-
-        _transferOwnership(_creator);
-    }
+    constructor() ERC721("Hyperlink NFT Collection", "HNFT") {}
 
     modifier onlyTokenOwner(uint256 tokenId) {
         require(_msgSender() == ownerOf(tokenId), "should be the token owner");
@@ -66,7 +43,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
         
         _authorizeSlotTo(tokenId, slotManagerAddr);
     }
-    
+
     function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
         tokenId2AuthroizedAddresses[tokenId].add(slotManagerAddr);
         emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
@@ -79,7 +56,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
         emit SlotAuthorizationRevoked(tokenId, slotManagerAddr);
     }
 
-    function revokeAllAuthorizations(uint256 tokenId) override public onlyTokenOwner(tokenId) {
+    function revokeAllAuthorizations(uint256 tokenId) override external onlyTokenOwner(tokenId) {
         for (uint256 i = tokenId2AuthroizedAddresses[tokenId].length() - 1;i > 0; i--) {
             address addr = tokenId2AuthroizedAddresses[tokenId].at(i);
             tokenId2AuthroizedAddresses[tokenId].remove(addr);
@@ -101,43 +78,60 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
         return tokenId2AuthroizedAddresses[tokenId].contains(addr);
     }
 
-    function wrap(uint256 tokenId) public {
-        require((IERC721)(wrappedContract).ownerOf(tokenId) == _msgSender(), "should own tokenId");
-        require((IERC721)(wrappedContract).getApproved(tokenId) == address(this), "should approve tokenId first");
-
-        (IERC721)(wrappedContract).safeTransferFrom(_msgSender(), address(this), tokenId);
-
-        if (_exists(tokenId) && ownerOf(tokenId) == address(this)) {
-            _safeTransfer(address(this), _msgSender(), tokenId, "");
-        } else {
-            _safeMint(_msgSender(), tokenId);
-        }
-
-        emit TokenWrapped(tokenId);
-    }
-
-    function unwrap(uint256 tokenId) public onlyTokenOwner(tokenId) {
-        (IERC721)(wrappedContract).safeTransferFrom(address(this), _msgSender(), tokenId);
-
-        if (tokenId2AuthroizedAddresses[tokenId].length() != 0) {
-            revokeAllAuthorizations(tokenId);
-        }
-
-        safeTransferFrom(_msgSender(), address(this), tokenId);
-        emit TokenUnwrapped(tokenId);
-    }
-
-    function getWrappedContract() public view returns (address) {
-        return wrappedContract;
-    }
-
-    function getCreator() public view returns (address) {
-        return creator;
-    }
-
     // !!expensive, should call only when no gas is needed;
     function getSlotManagers(uint256 tokenId) external view returns (address[] memory) {
         return tokenId2AuthroizedAddresses[tokenId].values();
+    }
+
+    function _mintToken(uint256 tokenId, string calldata imageUri) private {
+        _safeMint(msg.sender, tokenId);
+        tokenId2ImageUri[tokenId] = imageUri;
+    }
+
+    function mint(string calldata imageUri) external {
+        uint256 tokenId = totalSupply() + 1;
+        _mintToken(tokenId, imageUri);
+    }
+
+    function mintAndAuthorizeTo(string calldata imageUri, address slotManagerAddr) external {
+        uint256 tokenId = totalSupply() + 1;
+        _mintToken(tokenId, imageUri);
+        _authorizeSlotTo(tokenId, slotManagerAddr);
+    }
+
+    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
+        require(
+            _exists(_tokenId),
+            "URI query for nonexistent token"
+        );
+
+        return
+            string(
+                abi.encodePacked(
+                    "data:application/json;base64,",
+                    Base64.encode(
+                        bytes(
+                            abi.encodePacked(
+                                '{"name":"',
+                                abi.encodePacked(
+                                    "Hyperlink NFT Collection # ",
+                                    Strings.toString(_tokenId)
+                                ),
+                                '",',
+                                '"description":"Hyperlink NFT collection created with Parami Foundation"',
+                                ',',
+                                '"image":"',
+                                tokenId2ImageUri[_tokenId],
+                                '"}'
+                            )
+                        )
+                    )
+                )
+            );
+    }
+
+    function setImageURI(uint256 tokenId, string calldata uri) external onlyTokenOwner(tokenId) {
+        tokenId2ImageUri[tokenId] = uri;
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -146,15 +140,6 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
         override(ERC721Enumerable)
         returns (bool)
     {
-        return
-            interfaceId == type(IERC721H).interfaceId ||
-            interfaceId == type(IERC721).interfaceId ||
-            interfaceId == type(IERC721Receiver).interfaceId ||
-            interfaceId == type(IERC721Enumerable).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
-    function tokenURI(uint256 tokenId) public view override returns(string memory) {
-        return (IERC721Metadata)(wrappedContract).tokenURI(tokenId);
+        return interfaceId == type(IERC721H).interfaceId || super.supportsInterface(interfaceId);
     }
 }
