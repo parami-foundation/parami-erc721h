@@ -24,10 +24,11 @@ async function main() {
   const ParamiLinkFactory = await ethers.getContractFactory("ParamiLink");
   const paramiLink = await ParamiLinkFactory.deploy();
 
+  await erc721HCollection.deployed();
   await erc721WRegistry.deployed();
   await paramiLink.deployed();
 
-  console.log("erc721wregistry deployed to:", erc721HCollection.address);
+  console.log("erc721wregistry deployed to:", erc721WRegistry.address);
   console.log("erc721hCollection deployed to:", erc721HCollection.address);
   console.log("parami link deployed to:", paramiLink.address);
 }
