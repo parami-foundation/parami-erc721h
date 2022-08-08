@@ -13,7 +13,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     address private wrappedContract;
     address private creator;
 
-    mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthroizedAddresses;
+    mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthorizedAddresses;
     mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
 
     event TokenWrapped (uint256 indexed tokenId);
@@ -47,7 +47,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     modifier onlySlotManager(uint256 tokenId) {
-        require(_msgSender() == ownerOf(tokenId) || tokenId2AuthroizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
+        require(_msgSender() == ownerOf(tokenId) || tokenId2AuthorizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
         _;
     }
 
@@ -73,30 +73,30 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     }
     
     function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
-        require(!tokenId2AuthroizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
-        tokenId2AuthroizedAddresses[tokenId].add(slotManagerAddr);
+        require(!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
+        tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
         emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
     }
 
     function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        tokenId2AuthroizedAddresses[tokenId].remove(slotManagerAddr);
+        tokenId2AuthorizedAddresses[tokenId].remove(slotManagerAddr);
         delete tokenId2Address2Value[tokenId][slotManagerAddr];
 
         emit SlotAuthorizationRevoked(tokenId, slotManagerAddr);
     }
 
     function revokeAllAuthorizations(uint256 tokenId) override public onlyTokenOwner(tokenId) {
-        for (uint256 i = tokenId2AuthroizedAddresses[tokenId].length() - 1;i > 0; i--) {
-            address addr = tokenId2AuthroizedAddresses[tokenId].at(i);
-            tokenId2AuthroizedAddresses[tokenId].remove(addr);
+        for (uint256 i = tokenId2AuthorizedAddresses[tokenId].length() - 1;i > 0; i--) {
+            address addr = tokenId2AuthorizedAddresses[tokenId].at(i);
+            tokenId2AuthorizedAddresses[tokenId].remove(addr);
             delete tokenId2Address2Value[tokenId][addr];
 
             emit SlotAuthorizationRevoked(tokenId, addr);
         }
 
-        if (tokenId2AuthroizedAddresses[tokenId].length() > 0) {
-            address addr = tokenId2AuthroizedAddresses[tokenId].at(0);
-            tokenId2AuthroizedAddresses[tokenId].remove(addr);
+        if (tokenId2AuthorizedAddresses[tokenId].length() > 0) {
+            address addr = tokenId2AuthorizedAddresses[tokenId].at(0);
+            tokenId2AuthorizedAddresses[tokenId].remove(addr);
             delete tokenId2Address2Value[tokenId][addr];
 
             emit SlotAuthorizationRevoked(tokenId, addr);
@@ -104,7 +104,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     function isSlotManager(uint256 tokenId, address addr) public view returns (bool) {
-        return tokenId2AuthroizedAddresses[tokenId].contains(addr);
+        return tokenId2AuthorizedAddresses[tokenId].contains(addr);
     }
 
     function wrap(uint256 tokenId) public {
@@ -125,7 +125,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     function unwrap(uint256 tokenId) public onlyTokenOwner(tokenId) {
         (IERC721)(wrappedContract).safeTransferFrom(address(this), _msgSender(), tokenId);
 
-        if (tokenId2AuthroizedAddresses[tokenId].length() != 0) {
+        if (tokenId2AuthorizedAddresses[tokenId].length() != 0) {
             revokeAllAuthorizations(tokenId);
         }
 
@@ -143,7 +143,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
 
     // !!expensive, should call only when no gas is needed;
     function getSlotManagers(uint256 tokenId) external view returns (address[] memory) {
-        return tokenId2AuthroizedAddresses[tokenId].values();
+        return tokenId2AuthorizedAddresses[tokenId].values();
     }
 
     function supportsInterface(bytes4 interfaceId)
