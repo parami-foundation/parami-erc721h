@@ -62,12 +62,18 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        require(!tokenId2AuthroizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
-        
         _authorizeSlotTo(tokenId, slotManagerAddr);
+    }
+
+    function authorizeSlotToWithValue(uint256 tokenId, address slotManagerAddr, string calldata value) external onlyTokenOwner(tokenId) {
+        _authorizeSlotTo(tokenId, slotManagerAddr);
+        
+        tokenId2Address2Value[tokenId][slotManagerAddr] = value;
+        emit SlotUriUpdated(tokenId, slotManagerAddr, value);
     }
     
     function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
+        require(!tokenId2AuthroizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
         tokenId2AuthroizedAddresses[tokenId].add(slotManagerAddr);
         emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
     }
