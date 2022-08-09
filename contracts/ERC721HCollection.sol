@@ -19,7 +19,7 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     constructor() ERC721("Hyperlink NFT Collection", "HNFT") {}
 
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(_msgSender() == ownerOf(tokenId), "should be the token owner");
+        require(tx.origin == ownerOf(tokenId), "should be the token owner");
         _;
     }
 
@@ -39,20 +39,10 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     }
 
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        _authorizeSlotTo(tokenId, slotManagerAddr);
-    }
-
-    function authorizeSlotToWithValue(uint256 tokenId, address slotManagerAddr, string calldata initValue) external onlyTokenOwner(tokenId) {
-        _authorizeSlotTo(tokenId, slotManagerAddr);
-
-        tokenId2Address2Value[tokenId][slotManagerAddr] = initValue;
-        emit SlotUriUpdated(tokenId, slotManagerAddr, initValue);
-    }
-
-    function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
-        require(!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
-        tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
-        emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
+        if (!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr)) {
+            tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
+            emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
+        }
     }
 
     function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
@@ -97,12 +87,6 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     function mint(string calldata imageUri) external {
         uint256 tokenId = totalSupply() + 1;
         _mintToken(tokenId, imageUri);
-    }
-
-    function mintAndAuthorizeTo(string calldata imageUri, address slotManagerAddr) external {
-        uint256 tokenId = totalSupply() + 1;
-        _mintToken(tokenId, imageUri);
-        _authorizeSlotTo(tokenId, slotManagerAddr);
     }
 
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {

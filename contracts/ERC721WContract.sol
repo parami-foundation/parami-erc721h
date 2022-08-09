@@ -42,7 +42,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(_msgSender() == ownerOf(tokenId), "should be the token owner");
+        require(tx.origin == ownerOf(tokenId), "should be the token owner");
         _;
     }
 
@@ -62,20 +62,10 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        _authorizeSlotTo(tokenId, slotManagerAddr);
-    }
-
-    function authorizeSlotToWithValue(uint256 tokenId, address slotManagerAddr, string calldata value) external onlyTokenOwner(tokenId) {
-        _authorizeSlotTo(tokenId, slotManagerAddr);
-        
-        tokenId2Address2Value[tokenId][slotManagerAddr] = value;
-        emit SlotUriUpdated(tokenId, slotManagerAddr, value);
-    }
-    
-    function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
-        require(!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
-        tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
-        emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
+        if (!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr)) {
+            tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
+            emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
+        }
     }
 
     function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
