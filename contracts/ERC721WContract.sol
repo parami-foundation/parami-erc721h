@@ -42,7 +42,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
     }
 
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(tx.origin == ownerOf(tokenId), "should be the token owner");
+        require(tx.origin == ownerOf(tokenId) || _msgSender() == ownerOf(tokenId), "should be the token owner");
         _;
     }
 

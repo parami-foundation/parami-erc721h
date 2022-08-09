@@ -19,7 +19,7 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     constructor() ERC721("Hyperlink NFT Collection", "HNFT") {}
 
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(tx.origin == ownerOf(tokenId), "should be the token owner");
+        require(tx.origin == ownerOf(tokenId) || _msgSender() == ownerOf(tokenId), "should be the token owner");
         _;
     }
 
