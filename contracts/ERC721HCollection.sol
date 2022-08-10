@@ -10,7 +10,7 @@ import "./base64.sol";
 contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthroizedAddresses;
+    mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthorizedAddresses;
     mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
     mapping(uint256 => string) tokenId2ImageUri;
 
@@ -19,12 +19,12 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     constructor() ERC721("Hyperlink NFT Collection", "HNFT") {}
 
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(_msgSender() == ownerOf(tokenId), "should be the token owner");
+        require(tx.origin == ownerOf(tokenId) || _msgSender() == ownerOf(tokenId), "should be the token owner");
         _;
     }
 
     modifier onlySlotManager(uint256 tokenId) {
-        require(_msgSender() == ownerOf(tokenId) || tokenId2AuthroizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
+        require(_msgSender() == ownerOf(tokenId) || tokenId2AuthorizedAddresses[tokenId].contains(_msgSender()), "address should be authorized");
         _;
     }
 
@@ -39,35 +39,31 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     }
 
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        require(!tokenId2AuthroizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
-        
-        _authorizeSlotTo(tokenId, slotManagerAddr);
-    }
-
-    function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
-        tokenId2AuthroizedAddresses[tokenId].add(slotManagerAddr);
-        emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
+        if (!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr)) {
+            tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
+            emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
+        }
     }
 
     function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        tokenId2AuthroizedAddresses[tokenId].remove(slotManagerAddr);
+        tokenId2AuthorizedAddresses[tokenId].remove(slotManagerAddr);
         delete tokenId2Address2Value[tokenId][slotManagerAddr];
 
         emit SlotAuthorizationRevoked(tokenId, slotManagerAddr);
     }
 
     function revokeAllAuthorizations(uint256 tokenId) override external onlyTokenOwner(tokenId) {
-        for (uint256 i = tokenId2AuthroizedAddresses[tokenId].length() - 1;i > 0; i--) {
-            address addr = tokenId2AuthroizedAddresses[tokenId].at(i);
-            tokenId2AuthroizedAddresses[tokenId].remove(addr);
+        for (uint256 i = tokenId2AuthorizedAddresses[tokenId].length() - 1;i > 0; i--) {
+            address addr = tokenId2AuthorizedAddresses[tokenId].at(i);
+            tokenId2AuthorizedAddresses[tokenId].remove(addr);
             delete tokenId2Address2Value[tokenId][addr];
 
             emit SlotAuthorizationRevoked(tokenId, addr);
         }
 
-        if (tokenId2AuthroizedAddresses[tokenId].length() > 0) {
-            address addr = tokenId2AuthroizedAddresses[tokenId].at(0);
-            tokenId2AuthroizedAddresses[tokenId].remove(addr);
+        if (tokenId2AuthorizedAddresses[tokenId].length() > 0) {
+            address addr = tokenId2AuthorizedAddresses[tokenId].at(0);
+            tokenId2AuthorizedAddresses[tokenId].remove(addr);
             delete tokenId2Address2Value[tokenId][addr];
 
             emit SlotAuthorizationRevoked(tokenId, addr);
@@ -75,12 +71,12 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     }
 
     function isSlotManager(uint256 tokenId, address addr) public view returns (bool) {
-        return tokenId2AuthroizedAddresses[tokenId].contains(addr);
+        return tokenId2AuthorizedAddresses[tokenId].contains(addr);
     }
 
     // !!expensive, should call only when no gas is needed;
     function getSlotManagers(uint256 tokenId) external view returns (address[] memory) {
-        return tokenId2AuthroizedAddresses[tokenId].values();
+        return tokenId2AuthorizedAddresses[tokenId].values();
     }
 
     function _mintToken(uint256 tokenId, string calldata imageUri) private {
@@ -91,12 +87,6 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     function mint(string calldata imageUri) external {
         uint256 tokenId = totalSupply() + 1;
         _mintToken(tokenId, imageUri);
-    }
-
-    function mintAndAuthorizeTo(string calldata imageUri, address slotManagerAddr) external {
-        uint256 tokenId = totalSupply() + 1;
-        _mintToken(tokenId, imageUri);
-        _authorizeSlotTo(tokenId, slotManagerAddr);
     }
 
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
