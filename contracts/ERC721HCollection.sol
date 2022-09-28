@@ -1,22 +1,26 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IERC721H.sol";
 import "./base64.sol";
 
-contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
-    using EnumerableSet for EnumerableSet.AddressSet;
+contract ERC721HCollection is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgradeable {
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-    mapping(uint256 => EnumerableSet.AddressSet) tokenId2AuthorizedAddresses;
+    mapping(uint256 => EnumerableSetUpgradeable.AddressSet) tokenId2AuthorizedAddresses;
     mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
     mapping(uint256 => string) tokenId2ImageUri;
 
     string private _imageURI;
 
-    constructor() ERC721("Hyperlink NFT Collection", "HNFT") {}
+    function initialize() initializer public {
+        __ERC721_init("Hyperlink NFT Collection", "HNFT");
+        __Ownable_init();
+     }
 
     modifier onlyTokenOwner(uint256 tokenId) {
         require(tx.origin == ownerOf(tokenId) || _msgSender() == ownerOf(tokenId), "should be the token owner");
@@ -105,7 +109,7 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
                                 '{"name":"',
                                 abi.encodePacked(
                                     "Hyperlink NFT Collection # ",
-                                    Strings.toString(_tokenId)
+                                    StringsUpgradeable.toString(_tokenId)
                                 ),
                                 '",',
                                 '"description":"Hyperlink NFT collection created with Parami Foundation"',
@@ -127,7 +131,7 @@ contract ERC721HCollection is IERC721H, ERC721Enumerable, Ownable {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Enumerable)
+        override(ERC721EnumerableUpgradeable)
         returns (bool)
     {
         return interfaceId == type(IERC721H).interfaceId || super.supportsInterface(interfaceId);
