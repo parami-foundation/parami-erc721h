@@ -6,8 +6,8 @@
 import { ethers,upgrades } from "hardhat";
 
 async function main() {
-  const erc721Hcollection = await ethers.getContractFactory("ERC721HCollection");
-  const instance = await upgrades.deployProxy(erc721Hcollection);
+  const erc721HBatchCollection = await ethers.getContractFactory("ERC721HBatchCollection");
+  const instance = await upgrades.deployProxy(erc721HBatchCollection, ["https://airdrop.parami.io/baseURI/", "https://airdrop.parami.io/baseSlotURI/", 100010]);
   await instance.deployed()
 
   console.log("proxy deployed to", instance.address)
