@@ -10,8 +10,8 @@
     "size-contracts": "hardhat compile && hardhat size-contracts",
     "test": "hardhat test",
     "clear-cache": "rm -rf artifacts/ cache/ typechain/",
-    "deploy-rinkeby": "npx hardhat run --network rinkeby ./scripts/deploy.ts",
-    "verify-rinkeby": "npx hardhat verify --contract contracts/ERC721WRegistry.sol:ERC721WRegistry --network rinkeby"
+    "deploy-goerli": "npx hardhat run --network goerli ./scripts/deploy.ts",
+    "verify-goerli": "npx hardhat verify --contract contracts/ERC721WRegistry.sol:ERC721WRegistry --network goerli"
   },
   "author": "",
   "license": "ISC",

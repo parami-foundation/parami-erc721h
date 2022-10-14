@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
 import 'erc721a-upgradeable/contracts/ERC721AUpgradeable.sol';
@@ -59,7 +60,11 @@ contract ERC721HBatchCollection is IERC721H, ERC721AUpgradeable, OwnableUpgradea
     function getSlotUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
         string memory slotURI = tokenId2Address2Value[tokenId][slotManagerAddr];
 
-        return bytes(slotURI).length == 0 ? string(abi.encodePacked(_defaultBaseSlotURI, _toString(tokenId))) : slotURI;
+        return bytes(slotURI).length == 0 ? string(abi.encodePacked(_defaultBaseSlotURI,
+                                                                    StringsUpgradeable.toHexString(uint160(address(this)), 20),
+                                                                    "/",
+                                                                    _toString(tokenId)))
+            : slotURI;
     }
 
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
