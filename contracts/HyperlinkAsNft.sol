@@ -3,34 +3,40 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import "./IHyperlinkAsNft.sol";
 import "./base64.sol";
 
 /**
 Hyperlink as an Nft, as this phrase suggests, every Nft in this collection represents an hyperlink.
  */
-contract HyperlinkAsNft is ERC721EnumerableUpgradeable {
-
+contract HyperlinkAsNft is ERC721EnumerableUpgradeable, IHyperlinkAsNft {
     mapping(uint256 => string) tokenId2PosterUri;
     mapping(uint256 => string) tokenId2IconUri;
     mapping(uint256 => string) tokenId2Href;
 
-    function initialize() initializer public {
+    function initialize() public initializer {
         __ERC721_init("Hyperlink NFT Collection", "HyperlinkAsNft");
     }
 
-    function mint(string calldata iconUri, string calldata posterUri, string calldata href) external {
+    function mint(
+        string calldata iconUri,
+        string calldata posterUri,
+        string calldata href
+    ) external {
         uint256 tokenId = totalSupply() + 1;
-        _safeMint(msg.sender, tokenId);        
+        _safeMint(msg.sender, tokenId);
         tokenId2IconUri[tokenId] = iconUri;
         tokenId2PosterUri[tokenId] = posterUri;
         tokenId2Href[tokenId] = href;
     }
 
-    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
-        require(
-            _exists(_tokenId),
-            "URI query for nonexistent token"
-        );
+    function tokenURI(uint256 _tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
+        require(_exists(_tokenId), "URI query for nonexistent token");
 
         return
             string(
@@ -46,22 +52,61 @@ contract HyperlinkAsNft is ERC721EnumerableUpgradeable {
                                 ),
                                 '",',
                                 '"description":"Hyperlink NFT collection created with Parami Foundation"',
-                                ',',
+                                ",",
                                 '"image":"',
                                 tokenId2IconUri[_tokenId],
                                 '", ',
                                 '"poster":"',
                                 tokenId2PosterUri[_tokenId],
-                                '", ', 
+                                '", ',
                                 '"href":"',
                                 tokenId2Href[_tokenId],
-                                '"',  
-                                '}'
+                                '"',
+                                "}"
                             )
                         )
                     )
                 )
             );
+    }
+
+    /**
+     * @dev
+     * returns the latest icon uri of a token, which is indicated by `tokenId`
+     */
+    function getIconUri(uint256 tokenId)
+        external
+        view
+        override
+        returns (string memory)
+    {
+        return tokenId2IconUri[tokenId];
+    }
+
+    /**
+     * @dev
+     * returns the latest poster uri of a token, which is indicated by `tokenId`
+     */
+    function getPosterUri(uint256 tokenId)
+        external
+        view
+        override
+        returns (string memory)
+    {
+        return tokenId2PosterUri[tokenId];
+    }
+
+    /**
+     * @dev
+     * returns the latest href uri of a token, which is indicated by `tokenId`
+     */
+    function getHref(uint256 tokenId)
+        external
+        view
+        override
+        returns (string memory)
+    {
+        return tokenId2Href[tokenId];
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -70,7 +115,8 @@ contract HyperlinkAsNft is ERC721EnumerableUpgradeable {
         override(ERC721EnumerableUpgradeable)
         returns (bool)
     {
-        // interfaceId == type(IERC721H).interfaceId ||, TODO: define HNft current version interface
-        return super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IHyperlinkAsNft).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
