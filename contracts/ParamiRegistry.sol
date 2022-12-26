@@ -11,6 +11,7 @@ error NotIERC721();
 error NotOwner();
 error NotRegistered();
 error AlreadyRegistered();
+error LowPrice();
 
 contract ParamiRegistry is OwnableUpgradeable {
 
@@ -30,6 +31,7 @@ contract ParamiRegistry is OwnableUpgradeable {
     uint timestamp;
   }
 
+  uint256 private outBidPricePercentage;
   EnumerableSet.AddressSet private nftAddressSet;
   mapping(address => EnumerableSet.UintSet) private nftAddress2TokenIdSet;
   mapping(address => mapping(uint256 => AD)) private nftAddress2TokenId2AD;
@@ -77,6 +79,15 @@ contract ParamiRegistry is OwnableUpgradeable {
   function initialize(address ad3ERC20) initializer public {
     __Ownable_init();
     _AD3 = IERC20(ad3ERC20);
+    outBidPricePercentage = 20;
+  }
+
+  function setOutBidPricePercentage(uint256 percentage) external onlyOwner {
+    outBidPricePercentage = percentage;
+  }
+
+  function getOutBidPricePercentage() external view returns(uint256) {
+    return outBidPricePercentage;
   }
 
   function register(address contractAddr, uint256 tokenId) external 
@@ -108,7 +119,9 @@ contract ParamiRegistry is OwnableUpgradeable {
     AD memory currentAd = nftAddress2TokenId2AD[nftAddress][tokenId];
 
     if (block.timestamp < (currentAd.timestamp + 24 hours)) {
-      require(price > currentAd.price, "LowPrice");
+      if (price < (currentAd.price * (100 + outBidPricePercentage) / 100)) {
+        revert LowPrice();
+      }
     }
 
     // todo: validates hnft
