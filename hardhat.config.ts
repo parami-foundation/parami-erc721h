@@ -7,6 +7,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "@openzeppelin/hardhat-upgrades"
 
 dotenv.config();
 
@@ -38,13 +39,13 @@ const config: HardhatUserConfig = {
   },
   networks: {
       mainnet: {
-          url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-          accounts:
+        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        accounts:
         process.env.MAINNET_PRIVATE_KEY !== undefined ? [process.env.MAINNET_PRIVATE_KEY] : [],
       },
-      rinkeby: {
-          url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
-          accounts:
+      goerli: {
+        url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        accounts:
         process.env.TESTNET_PRIVATE_KEY !== undefined ? [process.env.TESTNET_PRIVATE_KEY] : [],
       },
   },
@@ -55,13 +56,13 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
-    contractSizer: {
-        alphaSort: true,
-        disambiguatePaths: false,
-        runOnCompile: true,
-        strict: true,
-        only: [''],
-    }
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
+    only: [''],
+  }
 };
 
 export default config;

@@ -10,15 +10,16 @@
     "size-contracts": "hardhat compile && hardhat size-contracts",
     "test": "hardhat test",
     "clear-cache": "rm -rf artifacts/ cache/ typechain/",
-    "deploy-rinkeby": "npx hardhat run --network rinkeby ./scripts/deploy.ts",
-    "verify-rinkeby": "npx hardhat verify --contract contracts/ERC721WRegistry.sol:ERC721WRegistry --network rinkeby"
+    "deploy-goerli": "npx hardhat run --network goerli ./scripts/deploy.ts",
+    "verify-goerli": "npx hardhat verify --contract contracts/ERC721WRegistry.sol:ERC721WRegistry --network goerli"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.5",
+    "@nomiclabs/hardhat-ethers": "^2.1.1",
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "@typechain/ethers-v5": "^7.2.0",
     "@typechain/hardhat": "^2.3.1",
     "@types/chai": "^4.3.1",
@@ -28,6 +29,7 @@
     "@typescript-eslint/parser": "^4.33.0",
     "chai": "^4.3.6",
     "dotenv": "^10.0.0",
+    "erc721a-upgradeable": "^4.2.2",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard": "^16.0.3",
@@ -36,7 +38,7 @@
     "eslint-plugin-prettier": "^3.4.1",
     "eslint-plugin-promise": "^5.2.0",
     "ethereum-waffle": "^3.4.4",
-    "ethers": "^5.6.4",
+    "ethers": "^5.7.1",
     "hardhat": "^2.9.3",
     "hardhat-contract-sizer": "^2.5.1",
     "hardhat-gas-reporter": "^1.0.8",
@@ -49,6 +51,7 @@
     "typescript": "^4.6.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0"
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1"
   }
 }

@@ -1,25 +1,40 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import 'erc721a-upgradeable/contracts/ERC721AUpgradeable.sol';
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IERC721H.sol";
 import "./base64.sol";
 
-contract ERC721HCollection is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgradeable {
+contract ERC721HBatchCollection is IERC721H, ERC721AUpgradeable, OwnableUpgradeable {
+
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     mapping(uint256 => EnumerableSetUpgradeable.AddressSet) tokenId2AuthorizedAddresses;
-    mapping(uint256 => mapping(address=> string)) tokenId2Address2Value;
-    mapping(uint256 => string) tokenId2ImageUri;
+    mapping(uint256 => mapping(address=>string)) tokenId2Address2Value;
 
-    string private _imageURI;
+    string private _baseTokenURI;
+    string private _defaultBaseSlotURI;
 
-    function initialize() initializer public {
-        __ERC721_init("Hyperlink NFT Collection", "HNFT");
+    uint256 private constant _MAX_MINT_ERC2309_QUANTITY_LIMIT = 5000;
+
+    function initialize(string calldata baseURI, string calldata defaultBaseSlotURI, uint256 initialMintAmount) initializerERC721A initializer public {
+        __ERC721A_init("Hyperlink NFT Batch Collection", "HNFT");
         __Ownable_init();
+
+        _baseTokenURI = baseURI;
+        _defaultBaseSlotURI = defaultBaseSlotURI;
+
+        while (initialMintAmount != 0) {
+            uint256 mintAmount = initialMintAmount;
+            if (mintAmount > _MAX_MINT_ERC2309_QUANTITY_LIMIT) {
+                mintAmount = _MAX_MINT_ERC2309_QUANTITY_LIMIT;
+            }
+            _mintERC2309(owner(), mintAmount);
+            initialMintAmount -= mintAmount;
+        }
      }
 
     modifier onlyTokenOwner(uint256 tokenId) {
@@ -32,6 +47,10 @@ contract ERC721HCollection is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgr
         _;
     }
 
+    function mintERC2309(address addr, uint256 quantity) public onlyOwner {
+        _mintERC2309(addr, quantity);
+    }
+
     function setSlotUri(uint256 tokenId, string calldata value) override external onlySlotManager(tokenId) {
         tokenId2Address2Value[tokenId][_msgSender()] = value;
 
@@ -39,14 +58,24 @@ contract ERC721HCollection is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgr
     }
 
     function getSlotUri(uint256 tokenId, address slotManagerAddr) override external view returns (string memory) {
-        return tokenId2Address2Value[tokenId][slotManagerAddr];
+        string memory slotURI = tokenId2Address2Value[tokenId][slotManagerAddr];
+
+        return bytes(slotURI).length == 0 ? string(abi.encodePacked(_defaultBaseSlotURI,
+                                                                    StringsUpgradeable.toHexString(uint160(address(this)), 20),
+                                                                    "/",
+                                                                    _toString(tokenId)))
+            : slotURI;
     }
 
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        if (!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr)) {
-            tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
-            emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
-        }
+        require(!tokenId2AuthorizedAddresses[tokenId].contains(slotManagerAddr), "address already authorized");
+
+        _authorizeSlotTo(tokenId, slotManagerAddr);
+    }
+
+    function _authorizeSlotTo(uint256 tokenId, address slotManagerAddr) private {
+        tokenId2AuthorizedAddresses[tokenId].add(slotManagerAddr);
+        emit SlotAuthorizationCreated(tokenId, slotManagerAddr);
     }
 
     function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
@@ -83,55 +112,22 @@ contract ERC721HCollection is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgr
         return tokenId2AuthorizedAddresses[tokenId].values();
     }
 
-    function _mintToken(uint256 tokenId, string calldata imageUri) private {
-        _safeMint(msg.sender, tokenId);
-        tokenId2ImageUri[tokenId] = imageUri;
+    function setBaseURI(string calldata baseURI) public onlyOwner {
+        _baseTokenURI = baseURI;
     }
 
-    function mint(string calldata imageUri) external {
-        uint256 tokenId = totalSupply() + 1;
-        _mintToken(tokenId, imageUri);
+    function setDefaultSlotURI(string calldata defaultBaseSlotURI) public onlyOwner {
+        _defaultBaseSlotURI = defaultBaseSlotURI;
     }
 
-    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
-        require(
-            _exists(_tokenId),
-            "URI query for nonexistent token"
-        );
-
-        return
-            string(
-                abi.encodePacked(
-                    "data:application/json;base64,",
-                    Base64.encode(
-                        bytes(
-                            abi.encodePacked(
-                                '{"name":"',
-                                abi.encodePacked(
-                                    "Hyperlink NFT Collection # ",
-                                    StringsUpgradeable.toString(_tokenId)
-                                ),
-                                '",',
-                                '"description":"Hyperlink NFT collection created with Parami Foundation"',
-                                ',',
-                                '"image":"',
-                                tokenId2ImageUri[_tokenId],
-                                '"}'
-                            )
-                        )
-                    )
-                )
-            );
-    }
-
-    function setImageURI(uint256 tokenId, string calldata uri) external onlyTokenOwner(tokenId) {
-        tokenId2ImageUri[tokenId] = uri;
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
     }
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721EnumerableUpgradeable)
+        override(ERC721AUpgradeable)
         returns (bool)
     {
         return interfaceId == type(IERC721H).interfaceId || super.supportsInterface(interfaceId);
