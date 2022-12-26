@@ -2,16 +2,20 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "./base64.sol";
 
-contract HNft is ERC721EnumerableUpgradeable {
+/**
+Hyperlink as an Nft, as this phrase suggests, every Nft in this collection represents an hyperlink.
+ */
+contract HyperlinkAsNft is ERC721EnumerableUpgradeable {
 
     mapping(uint256 => string) tokenId2PosterUri;
     mapping(uint256 => string) tokenId2IconUri;
     mapping(uint256 => string) tokenId2Href;
 
     function initialize() initializer public {
-        __ERC721_init("Hyperlink NFT Collection", "HNFT");
+        __ERC721_init("Hyperlink NFT Collection", "HyperlinkAsNft");
     }
 
     function mint(string calldata iconUri, string calldata posterUri, string calldata href) external {
@@ -37,19 +41,19 @@ contract HNft is ERC721EnumerableUpgradeable {
                             abi.encodePacked(
                                 '{"name":"',
                                 abi.encodePacked(
-                                    "Hyperlink NFT Collection # ",
-                                    Strings.toString(_tokenId)
+                                    "Hyperlink As NFT Collection # ",
+                                    StringsUpgradeable.toString(_tokenId)
                                 ),
                                 '",',
                                 '"description":"Hyperlink NFT collection created with Parami Foundation"',
                                 ',',
                                 '"image":"',
                                 tokenId2IconUri[_tokenId],
-                                '"',
-                                '"poster:"',
+                                '", ',
+                                '"poster":"',
                                 tokenId2PosterUri[_tokenId],
-                                '"', 
-                                '"href:"',
+                                '", ', 
+                                '"href":"',
                                 tokenId2Href[_tokenId],
                                 '"',  
                                 '}'
