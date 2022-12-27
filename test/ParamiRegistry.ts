@@ -97,39 +97,47 @@ describe("ParamiRegistry", () => {
       await expect(paramiRegistry.bid(nftContract.address, 1, nftContract.address, 2, 100)).to.be.revertedWith("Insufficient allowance");
     })
 
-    it("can bid", async () => {
-      await nftContract.mint(2);
-      await ad3Contract.approve(paramiRegistry.address, 100);
-      await paramiRegistry.register(nftContract.address, 1);
-      await paramiRegistry.bid(nftContract.address, 1, nftContract.address, 2, 100);
-      const ad = await paramiRegistry.getAd(nftContract.address, 1);
-      expect(ad.hnftAddress).is.equal(nftContract.address);
-      expect(ad.tokenId).is.equal(2);
-      expect(ad.price).is.equal(100);
-    })
+    describe("bid and after first bid", async () => {
+      beforeEach(async () => {
+        await nftContract.mint(2);
+        await ad3Contract.approve(paramiRegistry.address, 100);
+        await paramiRegistry.register(nftContract.address, 1);
+        await paramiRegistry.bid(nftContract.address, 1, nftContract.address, 2, 100);
+      })
 
-    it("cannot bid with low price", async () => {
-      await nftContract.mint(2);
-      await ad3Contract.approve(paramiRegistry.address, 100);
-      await paramiRegistry.register(nftContract.address, 1);
-      await paramiRegistry.bid(nftContract.address, 1, nftContract.address, 2, 100);
+      it("can bid", async () => {
+        expect(await ad3Contract.balanceOf(owner.address)).to.equal(0);
+        expect(await ad3Contract.balanceOf(paramiRegistry.address)).to.equal(100);
+        const ad = await paramiRegistry.getAd(nftContract.address, 1);
+        expect(ad.hnftAddress).is.equal(nftContract.address);
+        expect(ad.tokenId).is.equal(2);
+        expect(ad.price).is.equal(100);
+      })
 
-      await ad3Contract.connect(addr1).mint(100);
-      await ad3Contract.connect(addr1).approve(paramiRegistry.address, 100);
-      await expect(paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 100)).to.be.revertedWith("LowPrice");
-    })
+      it("cannot bid with low price", async () => {
+        await ad3Contract.connect(addr1).mint(100);
+        await ad3Contract.connect(addr1).approve(paramiRegistry.address, 100);
+        await expect(paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 100)).to.be.revertedWith("LowPrice");
+        expect(await ad3Contract.balanceOf(addr1.address)).to.equal(100);
+      })
 
-    it("can out bid", async () => {
-      await nftContract.mint(2);
-      await ad3Contract.approve(paramiRegistry.address, 100);
-      await paramiRegistry.register(nftContract.address, 1);
-      await paramiRegistry.bid(nftContract.address, 1, nftContract.address, 2, 100);
+      it("can out bid", async () => {
+        await ad3Contract.connect(addr1).mint(150);
+        await ad3Contract.connect(addr1).approve(paramiRegistry.address, 150);
+        await paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 120);
+        expect(await ad3Contract.balanceOf(addr1.address)).to.equal(30);
+        expect(await ad3Contract.balanceOf(paramiRegistry.address)).to.equal(220);
+        const ad = await paramiRegistry.getAd(nftContract.address, 1);
+        expect(ad.price).to.equal(120);
+      })
 
-      await ad3Contract.connect(addr1).mint(150);
-      await ad3Contract.connect(addr1).approve(paramiRegistry.address, 150);
-      await paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 120);
-      const ad = await paramiRegistry.getAd(nftContract.address, 1);
-      expect(ad.price).to.equal(120);
+      it("delete ad after unregister", async () => {
+        await paramiRegistry.unregister(nftContract.address, 1);
+        const ad = await paramiRegistry.getAd(nftContract.address, 1);
+        expect(ad.hnftAddress).is.equal(ethers.constants.AddressZero);
+        expect(ad.tokenId).is.equal(0);
+        expect(ad.price).is.equal(0);
+      })
     })
   })
 })

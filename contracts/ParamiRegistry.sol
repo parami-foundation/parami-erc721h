@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 error NotIERC721();
 error NotOwner();
@@ -14,9 +13,6 @@ error AlreadyRegistered();
 error LowPrice();
 
 contract ParamiRegistry is OwnableUpgradeable {
-
-  using EnumerableSet for EnumerableSet.AddressSet;
-  using EnumerableSet for EnumerableSet.UintSet;
   
   event AdSpaceRegistered(address nftAddress, uint256 tokenId);
   event AdSpaceUnregistered(address nftAddress, uint256 tokenId);
@@ -32,8 +28,7 @@ contract ParamiRegistry is OwnableUpgradeable {
   }
 
   uint256 private outBidPricePercentage;
-  EnumerableSet.AddressSet private nftAddressSet;
-  mapping(address => EnumerableSet.UintSet) private nftAddress2TokenIdSet;
+  mapping(address => mapping(uint256 => bool)) private nftRegistrar;
   mapping(address => mapping(uint256 => AD)) private nftAddress2TokenId2AD;
 
   modifier isNftOwner(address nftAddress, uint256 tokenId, address spender) {
@@ -73,7 +68,7 @@ contract ParamiRegistry is OwnableUpgradeable {
   }
 
   function isRegistered(address nftAddress, uint256 tokenId) public view returns(bool) {
-    return nftAddressSet.contains(nftAddress) && nftAddress2TokenIdSet[nftAddress].contains(tokenId);
+    return nftRegistrar[nftAddress][tokenId];
   }
 
   function initialize(address ad3ERC20) initializer public {
@@ -90,25 +85,20 @@ contract ParamiRegistry is OwnableUpgradeable {
     return outBidPricePercentage;
   }
 
-  function register(address contractAddr, uint256 tokenId) external 
-    isNftOwner(contractAddr, tokenId, _msgSender())
-    notRegistered(contractAddr, tokenId)
+  function register(address nftAddress, uint256 tokenId) external 
+    isNftOwner(nftAddress, tokenId, _msgSender())
+    notRegistered(nftAddress, tokenId)
   {
-    nftAddressSet.add(contractAddr);
-    nftAddress2TokenIdSet[contractAddr].add(tokenId);
-
-    emit AdSpaceRegistered(contractAddr, tokenId);
+    nftRegistrar[nftAddress][tokenId] = true;
+    emit AdSpaceRegistered(nftAddress, tokenId);
   }
 
   function unregister(address nftAddress, uint256 tokenId) external 
     isNftOwner(nftAddress, tokenId, _msgSender())
     registered(nftAddress, tokenId)
   {
-    nftAddress2TokenIdSet[nftAddress].remove(tokenId);
-    if (nftAddress2TokenIdSet[nftAddress].length() == 0) {
-      nftAddressSet.remove(nftAddress);
-    }
-    
+    delete nftRegistrar[nftAddress][tokenId];
+    delete nftAddress2TokenId2AD[nftAddress][tokenId];
     emit AdSpaceUnregistered(nftAddress, tokenId);
   }
 
@@ -133,14 +123,6 @@ contract ParamiRegistry is OwnableUpgradeable {
     _AD3.transferFrom(_msgSender(), address(this), price);
 
     emit AdBid(nftAddress, tokenId, hnftAddress, hnftTokenId, price);
-  }
-
-  function getNftAddresses() external view returns (address[] memory) {
-    return nftAddressSet.values();
-  }
-
-  function getNftTokens(address nftAddress) external view returns (uint256[] memory) {
-    return nftAddress2TokenIdSet[nftAddress].values();
   }
 
   function getAd(address nftAddress, uint256 tokenId) external view returns (AD memory) {
