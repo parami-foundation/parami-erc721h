@@ -1,8 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ERC20, ERC721, HyperlinkAsNft, MockAD3, MockNFT, ParamiRegistry } from "../typechain"
+import { HyperlinkAsNft, MockAD3, MockNFT, ParamiRegistry } from "../typechain"
 import { expect } from "chai";
-import { experimentalAddHardhatNetworkMessageTraceHook } from "hardhat/config";
 
 describe("ParamiRegistry", () => {
   let paramiRegistry: ParamiRegistry;
