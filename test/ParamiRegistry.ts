@@ -1,12 +1,14 @@
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ERC20, ERC721, MockAD3, MockNFT, ParamiRegistry } from "../typechain"
+import { ERC20, ERC721, HyperlinkAsNft, MockAD3, MockNFT, ParamiRegistry } from "../typechain"
 import { expect } from "chai";
+import { experimentalAddHardhatNetworkMessageTraceHook } from "hardhat/config";
 
 describe("ParamiRegistry", () => {
   let paramiRegistry: ParamiRegistry;
   let nftContract: MockNFT;
   let ad3Contract: MockAD3;
+  let hnftContract: HyperlinkAsNft;
   let owner: SignerWithAddress;
   let addr1: SignerWithAddress;
   let addr2: SignerWithAddress;
@@ -17,9 +19,13 @@ describe("ParamiRegistry", () => {
     const nftContractFactory = await ethers.getContractFactory("MockNFT");
     const ad3ContractFactory = await ethers.getContractFactory("MockAD3");
     const paramiRegistryFactory = await ethers.getContractFactory("ParamiRegistry");
+    const hnftFactory = await ethers.getContractFactory("HyperlinkAsNft");
 
     nftContract = await nftContractFactory.deploy();
     ad3Contract = await ad3ContractFactory.deploy();
+
+    hnftContract = await upgrades.deployProxy(hnftFactory) as HyperlinkAsNft;
+    await hnftContract.deployed();
 
     paramiRegistry = await upgrades.deployProxy(paramiRegistryFactory, [ad3Contract.address]) as ParamiRegistry;
     await paramiRegistry.deployed();
@@ -80,6 +86,18 @@ describe("ParamiRegistry", () => {
       expect(await paramiRegistry.getOutBidPricePercentage()).to.equal(20);
     })
 
+    it("has init adDuration", async () => {
+      expect(await paramiRegistry.getAdDuration()).to.equal(24 * 60 * 60);
+    })
+
+    it("contract owner and only owner can change adDuration", async () => {
+      const twoHours = 2 * 60 * 60;
+      await paramiRegistry.setAdDuration(twoHours);
+      expect(await paramiRegistry.getAdDuration()).to.equal(twoHours);
+      await expect(paramiRegistry.connect(addr1).setAdDuration(twoHours + 1)).to.be.revertedWith("Ownable: caller is not the owner");
+      expect(await paramiRegistry.getAdDuration()).to.equal(twoHours);
+    })
+
     beforeEach(async () => {
       await nftContract.mint(1);
       await ad3Contract.mint(100);
@@ -99,35 +117,45 @@ describe("ParamiRegistry", () => {
 
     describe("bid and after first bid", async () => {
       beforeEach(async () => {
-        await nftContract.mint(2);
+        await hnftContract.mint("", "", "");
         await ad3Contract.approve(paramiRegistry.address, 100);
         await paramiRegistry.register(nftContract.address, 1);
-        await paramiRegistry.bid(nftContract.address, 1, nftContract.address, 2, 100);
+        await paramiRegistry.bid(nftContract.address, 1, hnftContract.address, 1, 100);
       })
 
       it("can bid", async () => {
         expect(await ad3Contract.balanceOf(owner.address)).to.equal(0);
         expect(await ad3Contract.balanceOf(paramiRegistry.address)).to.equal(100);
         const ad = await paramiRegistry.getAd(nftContract.address, 1);
-        expect(ad.hnftAddress).is.equal(nftContract.address);
-        expect(ad.tokenId).is.equal(2);
+        expect(ad.hnftAddress).is.equal(hnftContract.address);
+        expect(ad.tokenId).is.equal(1);
         expect(ad.price).is.equal(100);
       })
 
       it("cannot bid with low price", async () => {
         await ad3Contract.connect(addr1).mint(100);
         await ad3Contract.connect(addr1).approve(paramiRegistry.address, 100);
-        await expect(paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 100)).to.be.revertedWith("LowPrice");
+        await expect(paramiRegistry.connect(addr1).bid(nftContract.address, 1, hnftContract.address, 1, 100)).to.be.revertedWith("LowPrice");
         expect(await ad3Contract.balanceOf(addr1.address)).to.equal(100);
       })
 
-      it("can out bid", async () => {
+      it("can only bid with hnft", async () => {
         await ad3Contract.connect(addr1).mint(150);
         await ad3Contract.connect(addr1).approve(paramiRegistry.address, 150);
-        await paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 120);
+        await nftContract.connect(addr1).mint(2);
+        await expect(paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 150)).to.be.revertedWith("NotHyperlinkNFT");
+      })
+
+      it("can out bid", async () => {
+        await hnftContract.mint("", "", "");
+        await ad3Contract.connect(addr1).mint(150);
+        await ad3Contract.connect(addr1).approve(paramiRegistry.address, 150);
+        await paramiRegistry.connect(addr1).bid(nftContract.address, 1, hnftContract.address, 2, 120);
         expect(await ad3Contract.balanceOf(addr1.address)).to.equal(30);
         expect(await ad3Contract.balanceOf(paramiRegistry.address)).to.equal(220);
         const ad = await paramiRegistry.getAd(nftContract.address, 1);
+        expect(ad.hnftAddress).to.equal(hnftContract.address);
+        expect(ad.tokenId).to.equal(2);
         expect(ad.price).to.equal(120);
       })
 
@@ -137,6 +165,24 @@ describe("ParamiRegistry", () => {
         expect(ad.hnftAddress).is.equal(ethers.constants.AddressZero);
         expect(ad.tokenId).is.equal(0);
         expect(ad.price).is.equal(0);
+      })
+
+      it("can bid after ad expired", async () => {
+        const oneDay = 24 * 60 * 60;
+        await hnftContract.mint("", "", "");
+        await ad3Contract.connect(addr1).mint(100);
+        await ad3Contract.connect(addr1).approve(paramiRegistry.address, 50);
+        await expect(paramiRegistry.connect(addr1).bid(nftContract.address, 1, hnftContract.address, 2, 50)).to.be.revertedWith("LowPrice");
+        expect(await paramiRegistry.getAdDuration()).to.equal(oneDay);
+        
+        await ethers.provider.send('evm_increaseTime', [oneDay]);
+
+        await paramiRegistry.connect(addr1).bid(nftContract.address, 1, hnftContract.address, 2, 50);
+        expect(await ad3Contract.balanceOf(addr1.address)).to.equal(50);
+        expect(await ad3Contract.balanceOf(paramiRegistry.address)).to.equal(150);
+        const ad = await paramiRegistry.getAd(nftContract.address, 1);
+        expect(ad.tokenId).to.equal(2);
+        expect(ad.price).to.equal(50);
       })
     })
   })
