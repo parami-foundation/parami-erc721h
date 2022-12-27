@@ -138,13 +138,6 @@ describe("ParamiRegistry", () => {
         expect(await ad3Contract.balanceOf(addr1.address)).to.equal(100);
       })
 
-      it("can only bid with hnft", async () => {
-        await ad3Contract.connect(addr1).mint(150);
-        await ad3Contract.connect(addr1).approve(paramiRegistry.address, 150);
-        await nftContract.connect(addr1).mint(2);
-        await expect(paramiRegistry.connect(addr1).bid(nftContract.address, 1, nftContract.address, 2, 150)).to.be.revertedWith("NotHyperlinkNFT");
-      })
-
       it("can out bid", async () => {
         await hnftContract.mint("", "", "");
         await ad3Contract.connect(addr1).mint(150);

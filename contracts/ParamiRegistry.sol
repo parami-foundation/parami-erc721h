@@ -12,18 +12,17 @@ error NotOwner();
 error NotRegistered();
 error AlreadyRegistered();
 error LowPrice();
-error NotHyperlinkNFT();
 
 contract ParamiRegistry is OwnableUpgradeable {
   
   event AdSpaceRegistered(address nftAddress, uint256 tokenId);
   event AdSpaceUnregistered(address nftAddress, uint256 tokenId);
-  event AdBid(address nftAddress, uint256 tokenId, address hnftAddress, uint256 hnftTokenId, uint256 price);
+  event AdBid(address nftAddress, uint256 tokenId, IHyperlinkAsNft hnftAddress, uint256 hnftTokenId, uint256 price);
 
   IERC20 _AD3;
 
   struct AD {
-    address hnftAddress;
+    IHyperlinkAsNft hnftAddress;
     uint256 tokenId;
     uint256 price;
     uint timestamp;
@@ -70,20 +69,11 @@ contract ParamiRegistry is OwnableUpgradeable {
     _;
   }
 
-  modifier isHyperlinkNft(address hnftAddress) {
-    if (!(IERC165)(hnftAddress).supportsInterface(
-        type(IHyperlinkAsNft).interfaceId
-    )) {
-      revert NotHyperlinkNFT();
-    }
-    _;
-  }
-
   function isRegistered(address nftAddress, uint256 tokenId) public view returns(bool) {
     return nftRegistrar[nftAddress][tokenId];
   }
 
-  function initialize(address ad3ERC20) initializer public {
+  function initialize(IERC20 ad3ERC20) initializer public {
     __Ownable_init();
     _AD3 = IERC20(ad3ERC20);
     outBidPricePercentage = 20;
@@ -123,10 +113,9 @@ contract ParamiRegistry is OwnableUpgradeable {
     emit AdSpaceUnregistered(nftAddress, tokenId);
   }
 
-  function bid(address nftAddress, uint256 tokenId, address hnftAddress, uint256 hnftTokenId, uint256 price) external
+  function bid(address nftAddress, uint256 tokenId, IHyperlinkAsNft hnftAddress, uint256 hnftTokenId, uint256 price) external
     registered(nftAddress, tokenId)
     checkAllowance(price)
-    isHyperlinkNft(hnftAddress)
   {
     AD memory currentAd = nftAddress2TokenId2AD[nftAddress][tokenId];
 
