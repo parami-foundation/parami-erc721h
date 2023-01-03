@@ -9,7 +9,7 @@ import "../IERC721H.sol";
 import "../base64.sol";
 
 contract EPI5489ForInfluenceMing is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgradeable {
-    mapping(uint256 => string) tokenId2AuthorizedAddress;
+    mapping(uint256 => address) tokenId2AuthorizedAddress;
     mapping(uint256 => string) tokenId2ImageUri;
     mapping(uint256 => string) tokenId2Hyperlink;
     mapping(uint256 => string) tokenId2TwitterId;
@@ -49,12 +49,16 @@ contract EPI5489ForInfluenceMing is IERC721H, ERC721EnumerableUpgradeable, Ownab
         }
     }
 
-    function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override external onlyTokenOwner(tokenId) {
-        string authorizedAddress = tokenId2AuthorizedAddress[tokenId];
-        tokenId2AuthorizedAddress.remove(tokenId);
+    function revokeAuthorization(uint256 tokenId, address slotManagerAddr) override public onlyTokenOwner(tokenId) {
+        address authorizedAddress = tokenId2AuthorizedAddress[tokenId];
+        
         delete tokenId2Hyperlink[tokenId];
 
         emit SlotAuthorizationRevoked(tokenId, authorizedAddress);
+    }
+
+    function revokeAllAuthorizations(uint256 tokenId) override external onlyTokenOwner(tokenId) {
+        revokeAuthorization(tokenId, address(0));
     }
 
     function isSlotManager(uint256 tokenId, address addr) public view returns (bool) {
