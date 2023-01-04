@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../IERC721H.sol";
 import "../base64.sol";
 
-contract EPI5489ForInfluenceMing is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgradeable {
+contract EIP5489ForInfluenceMining is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgradeable {
     mapping(uint256 => address) tokenId2AuthorizedAddress;
     mapping(uint256 => string) tokenId2ImageUri;
     mapping(uint256 => string) tokenId2Hyperlink;
