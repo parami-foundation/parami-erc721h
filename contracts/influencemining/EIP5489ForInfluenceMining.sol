@@ -12,8 +12,6 @@ contract EPI5489ForInfluenceMing is IERC721H, ERC721EnumerableUpgradeable, Ownab
     mapping(uint256 => address) tokenId2AuthorizedAddress;
     mapping(uint256 => string) tokenId2ImageUri;
     mapping(uint256 => string) tokenId2Hyperlink;
-    mapping(uint256 => string) tokenId2TwitterId;
-    mapping(string => uint256) twitterId2TokenId;
 
     string private defaultHyperlinkPrefix;
 
@@ -65,15 +63,11 @@ contract EPI5489ForInfluenceMing is IERC721H, ERC721EnumerableUpgradeable, Ownab
         return tokenId2AuthorizedAddress[tokenId] == addr;
     }
 
-    function mint(string calldata imageUri, string calldata twitterId) external {
-        require(twitterId2TokenId[twitterId] == 0, "twitterId already used");
-        
+    function mint(string calldata imageUri) external {
         uint256 tokenId = totalSupply() + 1;
 
         _safeMint(msg.sender, tokenId);
         tokenId2ImageUri[tokenId] = imageUri;
-        tokenId2TwitterId[tokenId] = twitterId;
-        twitterId2TokenId[twitterId] = tokenId;
     }
 
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
@@ -99,9 +93,6 @@ contract EPI5489ForInfluenceMing is IERC721H, ERC721EnumerableUpgradeable, Ownab
                                 ',',
                                 '"image":"',
                                 tokenId2ImageUri[_tokenId],
-                                '",',
-                                '"twitterId":"',
-                                tokenId2TwitterId[_tokenId],
                                 '"',
                                 '}'
                             )
