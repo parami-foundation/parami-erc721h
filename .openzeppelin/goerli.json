@@ -1,0 +1,186 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0x9D6d50B3c2584d5847007572B2e5271bc564456f",
+    "txHash": "0x41a475afb8d7436ff499e40ccc62ac9b6cd855fcccca0b44a777ebdfc92cddeb"
+  },
+  "proxies": [
+    {
+      "address": "0xd630166D8C0f0d2B330685f140E90D5B1537e6e2",
+      "txHash": "0x5bf97e12c7432423370e2fb3fef9f506c77f33e6f10131a07f43005697fae61a",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "1a4050e47b00a3d6657bd1ead21edf555b3b7656950b69a8cf25a374e465a760": {
+      "address": "0xAD9E1e45d709E3cc317CCdce9C67e41983847585",
+      "txHash": "0x0ef96fe98d725b5eeb3441e21e059eb334c4126bae84b4c6a45ef034ac1d44da",
+      "layout": {
+        "solcVersion": "0.8.4",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "_AD3",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_contract(IERC20)4660",
+            "contract": "ParamiRegistry",
+            "src": "contracts/ParamiRegistry.sol:22"
+          },
+          {
+            "label": "outBidPricePercentage",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_uint256",
+            "contract": "ParamiRegistry",
+            "src": "contracts/ParamiRegistry.sol:31"
+          },
+          {
+            "label": "adDuration",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_uint256",
+            "contract": "ParamiRegistry",
+            "src": "contracts/ParamiRegistry.sol:32"
+          },
+          {
+            "label": "nftRegistrar",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_bool))",
+            "contract": "ParamiRegistry",
+            "src": "contracts/ParamiRegistry.sol:33"
+          },
+          {
+            "label": "nftAddress2TokenId2AD",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(AD)9442_storage))",
+            "contract": "ParamiRegistry",
+            "src": "contracts/ParamiRegistry.sol:34"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IERC20)4660": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IHyperlinkAsNft)9274": {
+            "label": "contract IHyperlinkAsNft",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_bool))": {
+            "label": "mapping(address => mapping(uint256 => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(AD)9442_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct ParamiRegistry.AD))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(AD)9442_storage)": {
+            "label": "mapping(uint256 => struct ParamiRegistry.AD)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AD)9442_storage": {
+            "label": "struct ParamiRegistry.AD",
+            "members": [
+              {
+                "label": "hnftAddress",
+                "type": "t_contract(IHyperlinkAsNft)9274",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "tokenId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "price",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}
