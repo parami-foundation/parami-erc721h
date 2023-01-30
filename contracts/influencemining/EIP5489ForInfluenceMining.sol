@@ -68,28 +68,36 @@ contract EIP5489ForInfluenceMining is IERC721H, ERC721EnumerableUpgradeable, Own
         return tokenId2AuthorizedAddress[tokenId] == addr;
     }
 
-    function mint(string calldata imageUri) external {
+    function mint(string calldata imageUri, uint256 targetLevel) external {
         uint256 tokenId = totalSupply() + 1;
-
         _safeMint(msg.sender, tokenId);
-        tokenId2ImageUri[tokenId] = imageUri;
+        tokenId2ImageUri[tokenId] = imageUri;  
+        
+        if(targetLevel != 0) {
+            _upgradeTo(tokenId, targetLevel);
+        }
     }
 
-    function upgradeTo(uint256 tokenId, uint256 targetLevel) public payable {
-        //1. check if value is enough
+    function _upgradeTo(uint256 tokenId, uint256 targetLevel) private {
         uint256 fromLevel = token2Level[tokenId];
         require(targetLevel > fromLevel, "targetLevel should G.T. fromLevel");
+
         uint256 fromLevelPrice = level2Price[fromLevel];
         uint256 targetLevelPrice = level2Price[targetLevel];
         require(targetLevelPrice != 0, "targetLevel should exist");
-        uint256 balance = ad3Contract.balanceOf(msg.sender);
         require(targetLevelPrice > fromLevelPrice, "targetLevelPrice should G.T. fromLevelPrice");
-        uint256 priceDiff = targetLevelPrice - fromLevelPrice;
-        require(targetLevelPrice != 0, "targetLevel should exist");
+
+        uint256 balance = ad3Contract.balanceOf(msg.sender);
+        uint256 priceDiff = targetLevelPrice - fromLevelPrice;        
         require(balance > priceDiff, "should have enough ad3");
-        
+
         ad3Contract.transferFrom(msg.sender, address(this), priceDiff);
         token2Level[tokenId] = targetLevel;
+    }
+
+    function upgradeTo(uint256 tokenId, uint256 targetLevel) public {
+        require(ownerOf(tokenId) != address(0), "Token should exists");
+        _upgradeTo(tokenId, targetLevel);
     }
 
     function manageLevelPrices(uint256[] calldata levels, uint256[] calldata prices) public onlyOwner() {

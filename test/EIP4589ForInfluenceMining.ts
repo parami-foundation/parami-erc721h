@@ -132,7 +132,42 @@ describe("UpgradeLevel", function () {
     });
   });
 
+  it("Should not upgradeLevel when token not exists", async () => {
+    await imContract
+      .connect(owner)
+      .manageLevelPrices(
+        [1, 2, 3],
+        [1n * 10n ** 18n, 2n * 10n ** 18n, 3n * 10n ** 18n]
+      );
+    console.log("finish manageLevelPrices");
+    await ad3Contract
+      .connect(owner)
+      .approve(imContract.address, 20n * 10n ** 18n);
+    console.log("finish approve");
+
+    let res = imContract.upgradeTo(1, 3);
+    await expect(res).to.be.rejected.then((e) => {
+      console.log(e.message);
+      expect(e.message).contains("ERC721: invalid token ID");
+    });
+  });
   it("Should not upgradeLevel when approve ad3 is not enough", async () => {});
+});
+
+describe("mint", function () {
+  it("Should success when targetLevel is 0", async () => {
+    //verify
+    //1.user's ad3 balance not changed
+    //2.contract's ad3 balance not changed
+  });
+  it("Should success when targetLevel G.T. 0 and targetLevel exists", async () => {
+    //verify
+    //1.ad3 balance changed as expected
+    //2.contract's ad3 balance changed as expected
+    //3.token's level eq to targetLevel
+  });
+  it("Should fail when targetLevel L.T. 0", async () => {});
+  it("Should fail when targetLevel doesn't exist", async () => {}); 
 });
 
 describe("withdrawAllAd3", () => {
@@ -192,7 +227,7 @@ async function prepareToken(signer: SignerWithAddress, params: TokenParams) {
     .connect(signer)
     .approve(imContract.address, 20n * 10n ** 18n);
   console.log("finish approve");
-  await imContract.connect(signer).mint(iconUri);
+  await imContract.connect(signer).mint(iconUri, 0);
   console.log("finish mint");
   if (!params) {
     return;
