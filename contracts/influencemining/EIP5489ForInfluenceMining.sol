@@ -5,19 +5,24 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Enumer
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../IERC721H.sol";
 import "../base64.sol";
 
 contract EIP5489ForInfluenceMining is IERC721H, ERC721EnumerableUpgradeable, OwnableUpgradeable {
-    mapping(uint256 => address) tokenId2AuthorizedAddress;
-    mapping(uint256 => string) tokenId2ImageUri;
-    mapping(uint256 => string) tokenId2Hyperlink;
+    mapping(uint256 => address) public tokenId2AuthorizedAddress;
+    mapping(uint256 => string) public tokenId2ImageUri;
+    mapping(uint256 => string) public tokenId2Hyperlink;
+    mapping(uint256 => uint256) public token2Level;
+    mapping(uint256 => uint256) public level2Price;
 
     string private defaultHyperlinkPrefix;
+    IERC20 ad3Contract;
 
-    function initialize() initializer public {
+    function initialize(address _ad3Address) initializer public {
         __ERC721_init("Hyperlink NFT Collection", "HNFT");
         __Ownable_init();
+        ad3Contract = IERC20(_ad3Address);
      }
 
     modifier onlyTokenOwner(uint256 tokenId) {
@@ -63,11 +68,48 @@ contract EIP5489ForInfluenceMining is IERC721H, ERC721EnumerableUpgradeable, Own
         return tokenId2AuthorizedAddress[tokenId] == addr;
     }
 
-    function mint(string calldata imageUri) external {
+    function mint(string calldata imageUri, uint256 targetLevel) external {
         uint256 tokenId = totalSupply() + 1;
-
         _safeMint(msg.sender, tokenId);
-        tokenId2ImageUri[tokenId] = imageUri;
+        tokenId2ImageUri[tokenId] = imageUri;  
+        
+        if(targetLevel != 0) {
+            _upgradeTo(tokenId, targetLevel);
+        }
+    }
+
+    function _upgradeTo(uint256 tokenId, uint256 targetLevel) private {
+        uint256 fromLevel = token2Level[tokenId];
+        require(targetLevel > fromLevel, "targetLevel should G.T. fromLevel");
+
+        uint256 fromLevelPrice = level2Price[fromLevel];
+        uint256 targetLevelPrice = level2Price[targetLevel];
+        require(targetLevelPrice != 0, "targetLevel should exist");
+        require(targetLevelPrice > fromLevelPrice, "targetLevelPrice should G.T. fromLevelPrice");
+
+        uint256 balance = ad3Contract.balanceOf(msg.sender);
+        uint256 priceDiff = targetLevelPrice - fromLevelPrice;        
+        require(balance > priceDiff, "should have enough ad3");
+
+        ad3Contract.transferFrom(msg.sender, address(this), priceDiff);
+        token2Level[tokenId] = targetLevel;
+    }
+
+    function upgradeTo(uint256 tokenId, uint256 targetLevel) public {
+        require(ownerOf(tokenId) != address(0), "Token should exists");
+        _upgradeTo(tokenId, targetLevel);
+    }
+
+    function manageLevelPrices(uint256[] calldata levels, uint256[] calldata prices) public onlyOwner() {
+        require(levels.length == prices.length, "levels.size should eq to prices.size");
+        for(uint256 i = 0; i < levels.length; i++) {
+            level2Price[levels[i]] = prices[i];
+        }
+    }
+
+    function withdrawAllAd3() public onlyOwner() {
+        uint256 allBalance = ad3Contract.balanceOf(address(this));
+        ad3Contract.transfer(owner(), allBalance);
     }
 
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
