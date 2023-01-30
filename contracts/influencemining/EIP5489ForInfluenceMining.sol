@@ -75,14 +75,21 @@ contract EIP5489ForInfluenceMining is IERC721H, ERC721EnumerableUpgradeable, Own
         tokenId2ImageUri[tokenId] = imageUri;
     }
 
-    function upgradeTo(uint256 tokenId, uint256 level) public payable {
+    function upgradeTo(uint256 tokenId, uint256 targetLevel) public payable {
         //1. check if value is enough
-        uint256 price = level2Price[level];
+        uint256 fromLevel = token2Level[tokenId];
+        require(targetLevel > fromLevel, "targetLevel should G.T. fromLevel");
+        uint256 fromLevelPrice = level2Price[fromLevel];
+        uint256 targetLevelPrice = level2Price[targetLevel];
+        require(targetLevelPrice != 0, "targetLevel should exist");
         uint256 balance = ad3Contract.balanceOf(msg.sender);
-        require(price != 0, "targetLevel should exist");
-        require(balance > price, "should have enough ad3");
-        ad3Contract.transferFrom(msg.sender, address(this), price);
-        token2Level[tokenId] = level;
+        require(targetLevelPrice > fromLevelPrice, "targetLevelPrice should G.T. fromLevelPrice");
+        uint256 priceDiff = targetLevelPrice - fromLevelPrice;
+        require(targetLevelPrice != 0, "targetLevel should exist");
+        require(balance > priceDiff, "should have enough ad3");
+        
+        ad3Contract.transferFrom(msg.sender, address(this), priceDiff);
+        token2Level[tokenId] = targetLevel;
     }
 
     function manageLevelPrices(uint256[] calldata levels, uint256[] calldata prices) public onlyOwner() {

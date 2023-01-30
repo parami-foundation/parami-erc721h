@@ -18,51 +18,96 @@ describe("UpgradeLevel", function () {
     await _beforeEach();
   });
 
-  it("Should upgradeLevel", async function () {
+  it("Should upgradeLevel from level zero to higher", async function () {
     //prepare
     let tokenId = 1;
     let targetLevel = 2;
-    const iconUri =
-      "https://ipfs.parami.io/ipfs/QmWjFHRBL56GDsojZZNmzgq1oeYKqFnz7M28viVmDDz1xm";
-    await imContract
-      .connect(owner)
-      .manageLevelPrices(
-        [1, 2, 3],
-        [1n * 10n ** 18n, 2n * 10n ** 18n, 3n * 10n ** 18n]
-      );
-    await imContract.connect(owner).mint(iconUri);
+    await prepareToken(owner, { tokenId, fromLevel: 0 });
 
     //prepare before action stat for verify
-    let balanceBefore = await ad3Contract.balanceOf(owner.address);
+    let before = await getStatToCompare(owner, tokenId);
 
     //action
-    await ad3Contract.connect(owner).approve(imContract.address, 2n * 10n ** 18n);
+    await ad3Contract
+      .connect(owner)
+      .approve(imContract.address, 2n * 10n ** 18n);
     await imContract.connect(owner).upgradeTo(tokenId, targetLevel);
 
     //prepare after action for verify
-    let balanceAfter = await ad3Contract.balanceOf(owner.address);
-    const level = await imContract.token2Level(tokenId);
+    let after = await getStatToCompare(owner, tokenId);
     //verify
-    expect(level).to.be.eq(targetLevel);
-    expect(balanceAfter).to.be.eq(balanceBefore.sub(2n * 10n ** 18n));
+    expect(after.level).to.be.eq(targetLevel);
+    expect(after.balance).to.be.eq(before.balance.sub(2n * 10n ** 18n));
+  });
+
+  it("should upgradeLevel from non-zero low to high", async () => {
+    //prepare
+    let tokenId = 1;
+    let fromLevel = 1;
+    let targetLevel = 2;
+    await prepareToken(owner, { tokenId, fromLevel });
+
+    //prepare before action stat for verify
+    const before = await getStatToCompare(owner, tokenId);
+
+    //action
+    await ad3Contract
+      .connect(owner)
+      .approve(imContract.address, 2n * 10n ** 18n);
+
+    await imContract.connect(owner).upgradeTo(tokenId, targetLevel);
+
+    //prepare after action for verify
+    const after = await getStatToCompare(owner, tokenId);
+
+    //verify
+    expect(after.level).to.be.eq(targetLevel);
+    expect(after.balance).to.be.eq(
+      before.balance.sub(after.levelPrice.sub(before.levelPrice))
+    );
+  });
+
+  it("should not upgradeLevel from high to low", async () => {
+    //prepare
+    let tokenId = 1;
+    let fromLevel = 3;
+    let targetLevel = 1;
+    await prepareToken(owner, { tokenId, fromLevel });
+
+    //action
+    let res = imContract.connect(owner).upgradeTo(tokenId, targetLevel);
+
+    //verify
+    await expect(res).to.be.rejected.then((e) => {
+      console.log(e.message);
+      expect(e.message).contains("targetLevel should G.T. fromLevel");
+    });
+  });
+
+  it("should not upgradeLevel from to the same level", async () => {
+    //prepare
+    let tokenId = 1;
+    let fromLevel = 3;
+    let targetLevel = 3;
+    await prepareToken(owner, { tokenId, fromLevel });
+
+    //action
+    let res = imContract.connect(owner).upgradeTo(tokenId, targetLevel);
+
+    //verify
+    await expect(res).to.be.rejected.then((e) => {
+      console.log(e.message);
+      expect(e.message).contains("targetLevel should G.T. fromLevel");
+    });
   });
 
   it("Should not upgradeLevel when level not exists", async () => {
     //prepare
     let tokenId = 1;
     let targetLevel = 4;
-    const iconUri =
-      "https://ipfs.parami.io/ipfs/QmWjFHRBL56GDsojZZNmzgq1oeYKqFnz7M28viVmDDz1xm";
-    await imContract
-      .connect(owner)
-      .manageLevelPrices(
-        [1, 2, 3],
-        [1n * 10n ** 18n, 2n * 10n ** 18n, 3n * 10n ** 18n]
-      );
-    await imContract.connect(owner).mint(iconUri);
+    await prepareToken(owner, { tokenId, fromLevel: 2 });
 
     //action
-    await ad3Contract.connect(owner).approve(imContract.address, 2n * 10n ** 18n);
     let res = imContract.connect(owner).upgradeTo(tokenId, targetLevel);
 
     //verify
@@ -76,15 +121,7 @@ describe("UpgradeLevel", function () {
     //prepare
     let tokenId = 1;
     let targetLevel = 2;
-    const iconUri =
-      "https://ipfs.parami.io/ipfs/QmWjFHRBL56GDsojZZNmzgq1oeYKqFnz7M28viVmDDz1xm";
-    await imContract
-      .connect(owner)
-      .manageLevelPrices(
-        [1, 2, 3],
-        [1n * 10n ** 18n, 2n * 10n ** 18n, 3n * 10n ** 18n]
-      );
-    await imContract.connect(signer2).mint(iconUri);
+    await prepareToken(signer2, { tokenId, fromLevel: 0 });
 
     //action
     await expect(
@@ -94,6 +131,8 @@ describe("UpgradeLevel", function () {
       expect(e.message as string).contains("should have enough ad3");
     });
   });
+
+  it("Should not upgradeLevel when approve ad3 is not enough", async () => {});
 });
 
 describe("withdrawAllAd3", () => {
@@ -105,21 +144,67 @@ describe("withdrawAllAd3", () => {
     await ad3Contract.transfer(imContract.address, 20n * 10n ** 18n);
 
     //prepare stat before action for verify
-    let contractBalanceBeforeWithdraw = await ad3Contract.balanceOf(imContract.address);
+    let contractBalanceBeforeWithdraw = await ad3Contract.balanceOf(
+      imContract.address
+    );
     let ownerBalanceBeforeWithdraw = await ad3Contract.balanceOf(owner.address);
 
     //action
     await imContract.withdrawAllAd3();
 
     //prepare stat after action for verify
-    let contractBalanceAfterWithdraw = await ad3Contract.balanceOf(imContract.address);
+    let contractBalanceAfterWithdraw = await ad3Contract.balanceOf(
+      imContract.address
+    );
     let ownerBalanceAfterWithdraw = await ad3Contract.balanceOf(owner.address);
 
     //verify
     expect(contractBalanceAfterWithdraw).to.be.eq(0n);
-    expect(ownerBalanceAfterWithdraw).to.be.eq(ownerBalanceBeforeWithdraw.add(contractBalanceBeforeWithdraw));
+    expect(ownerBalanceAfterWithdraw).to.be.eq(
+      ownerBalanceBeforeWithdraw.add(contractBalanceBeforeWithdraw)
+    );
   });
 });
+
+type TokenParams = {
+  tokenId: number;
+  fromLevel: number;
+};
+
+const getStatToCompare = async (signer: SignerWithAddress, tokenId: number) => {
+  let balance = await ad3Contract.balanceOf(signer.address);
+  const level = await imContract.token2Level(tokenId);
+  const levelPrice = await imContract.level2Price(level);
+  return { balance, level, levelPrice };
+};
+
+async function prepareToken(signer: SignerWithAddress, params: TokenParams) {
+  const iconUri =
+    "https://ipfs.parami.io/ipfs/QmWjFHRBL56GDsojZZNmzgq1oeYKqFnz7M28viVmDDz1xm";
+  await imContract
+    .connect(owner)
+    .manageLevelPrices(
+      [1, 2, 3],
+      [1n * 10n ** 18n, 2n * 10n ** 18n, 3n * 10n ** 18n]
+    );
+  console.log("finish manageLevelPrices");
+  await ad3Contract
+    .connect(signer)
+    .approve(imContract.address, 20n * 10n ** 18n);
+  console.log("finish approve");
+  await imContract.connect(signer).mint(iconUri);
+  console.log("finish mint");
+  if (!params) {
+    return;
+  }
+  if (!!params.fromLevel) {
+    console.log("fromLevel", params.fromLevel);
+    await imContract
+      .connect(signer)
+      .upgradeTo(params.tokenId, params.fromLevel);
+  }
+  console.log("finish upgradeTo");
+}
 
 async function _beforeEach() {
   [owner, signer2] = await ethers.getSigners();
