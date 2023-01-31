@@ -13,11 +13,12 @@ contract EIP5489ForInfluenceMining is IERC721H, ERC721EnumerableUpgradeable, Own
     mapping(uint256 => address) public tokenId2AuthorizedAddress;
     mapping(uint256 => string) public tokenId2ImageUri;
     mapping(uint256 => string) public tokenId2Hyperlink;
-    mapping(uint256 => uint256) public token2Level;
-    mapping(uint256 => uint256) public level2Price;
-
+    
     string private defaultHyperlinkPrefix;
     IERC20 ad3Contract;
+
+    mapping(uint256 => uint256) public token2Level;
+    mapping(uint256 => uint256) public level2Price;
 
     function initialize(address _ad3Address) initializer public {
         __ERC721_init("Hyperlink NFT Collection", "HNFT");
