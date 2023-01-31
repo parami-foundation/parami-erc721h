@@ -22,7 +22,7 @@ describe("UpgradeLevel", function () {
     //prepare
     let tokenId = 1;
     let targetLevel = 2;
-    await prepareToken(owner, { tokenId, fromLevel: 0 });
+    await prepareContext(owner, { tokenId, fromLevel: 0, mintToken: true });
 
     //prepare before action stat for verify
     let before = await getStatToCompare(owner, tokenId);
@@ -37,7 +37,7 @@ describe("UpgradeLevel", function () {
     let after = await getStatToCompare(owner, tokenId);
     //verify
     expect(after.level).to.be.eq(targetLevel);
-    expect(after.balance).to.be.eq(before.balance.sub(2n * 10n ** 18n));
+    expect(after.userBalance).to.be.eq(before.userBalance.sub(2n * 10n ** 18n));
   });
 
   it("should upgradeLevel from non-zero low to high", async () => {
@@ -45,7 +45,7 @@ describe("UpgradeLevel", function () {
     let tokenId = 1;
     let fromLevel = 1;
     let targetLevel = 2;
-    await prepareToken(owner, { tokenId, fromLevel });
+    await prepareContext(owner, { tokenId, fromLevel, mintToken: true });
 
     //prepare before action stat for verify
     const before = await getStatToCompare(owner, tokenId);
@@ -62,8 +62,8 @@ describe("UpgradeLevel", function () {
 
     //verify
     expect(after.level).to.be.eq(targetLevel);
-    expect(after.balance).to.be.eq(
-      before.balance.sub(after.levelPrice.sub(before.levelPrice))
+    expect(after.userBalance).to.be.eq(
+      before.userBalance.sub(after.levelPrice.sub(before.levelPrice))
     );
   });
 
@@ -72,7 +72,7 @@ describe("UpgradeLevel", function () {
     let tokenId = 1;
     let fromLevel = 3;
     let targetLevel = 1;
-    await prepareToken(owner, { tokenId, fromLevel });
+    await prepareContext(owner, { tokenId, fromLevel, mintToken: true });
 
     //action
     let res = imContract.connect(owner).upgradeTo(tokenId, targetLevel);
@@ -89,7 +89,7 @@ describe("UpgradeLevel", function () {
     let tokenId = 1;
     let fromLevel = 3;
     let targetLevel = 3;
-    await prepareToken(owner, { tokenId, fromLevel });
+    await prepareContext(owner, { tokenId, fromLevel, mintToken: true });
 
     //action
     let res = imContract.connect(owner).upgradeTo(tokenId, targetLevel);
@@ -105,7 +105,7 @@ describe("UpgradeLevel", function () {
     //prepare
     let tokenId = 1;
     let targetLevel = 4;
-    await prepareToken(owner, { tokenId, fromLevel: 2 });
+    await prepareContext(owner, { tokenId, fromLevel: 2, mintToken: true });
 
     //action
     let res = imContract.connect(owner).upgradeTo(tokenId, targetLevel);
@@ -121,7 +121,7 @@ describe("UpgradeLevel", function () {
     //prepare
     let tokenId = 1;
     let targetLevel = 2;
-    await prepareToken(signer2, { tokenId, fromLevel: 0 });
+    await prepareContext(signer2, { tokenId, fromLevel: 0, mintToken: true });
 
     //action
     await expect(
@@ -155,19 +155,62 @@ describe("UpgradeLevel", function () {
 });
 
 describe("mint", function () {
+  beforeEach(async () => {
+    await _beforeEach();
+  });
   it("Should success when targetLevel is 0", async () => {
+    //prepare
+    await prepareContext(owner, { fromLevel: 0 });
+
+    //action
+    const before = await getStatToCompare(owner, 0);
+    await imContract.connect(owner).mint("http://123", 0);
+    const after = await getStatToCompare(owner, 1);
+
     //verify
     //1.user's ad3 balance not changed
+    expect(after.userBalance).to.be.eq(before.userBalance);
     //2.contract's ad3 balance not changed
+    expect(after.contractBalance).to.be.eq(before.contractBalance);
   });
   it("Should success when targetLevel G.T. 0 and targetLevel exists", async () => {
+    //prepare
+    const targetLevel = 2;
+    await prepareContext(owner, { fromLevel: 0 });
+    //action
+    const before = await getStatToCompare(owner, 0);
+    await imContract.connect(owner).mint("http://123", targetLevel);
+    const after = await getStatToCompare(owner, 1);
     //verify
     //1.ad3 balance changed as expected
+    expect(after.userBalance).to.be.eq(before.userBalance.sub(after.levelPrice));
     //2.contract's ad3 balance changed as expected
+    expect(after.contractBalance).to.be.eq(before.contractBalance.add(after.levelPrice));
     //3.token's level eq to targetLevel
+    expect(after.level).to.be.eq(targetLevel);
   });
-  it("Should fail when targetLevel L.T. 0", async () => {});
-  it("Should fail when targetLevel doesn't exist", async () => {}); 
+  it("Should fail when targetLevel L.T. 0", async () => {
+    //prepare
+    const targetLevel = -1;
+    await prepareContext(owner, { fromLevel: 0 });
+    //action
+    const res = imContract.connect(owner).mint("http://123", targetLevel);
+    await expect(res).to.be.rejected.then(e => {
+      console.log(e.message);
+      expect(e.message).contains("value out-of-bounds");
+    });
+  });
+  it("Should fail when targetLevel doesn't exist", async () => {
+    //prepare
+    const targetLevel = 5;
+    await prepareContext(owner, { fromLevel: 0 });
+    //action
+    const res = imContract.connect(owner).mint("http://123", targetLevel);
+    await expect(res).to.be.rejected.then(e => {
+      console.log(e.message);
+      expect(e.message).contains("targetLevel should exist");
+    }); 
+  });
 });
 
 describe("withdrawAllAd3", () => {
@@ -201,19 +244,24 @@ describe("withdrawAllAd3", () => {
   });
 });
 
-type TokenParams = {
+interface Context {
   tokenId: number;
   fromLevel: number;
-};
+  mintToken: boolean;
+}
 
 const getStatToCompare = async (signer: SignerWithAddress, tokenId: number) => {
-  let balance = await ad3Contract.balanceOf(signer.address);
+  const userBalance = await ad3Contract.balanceOf(signer.address);
   const level = await imContract.token2Level(tokenId);
   const levelPrice = await imContract.level2Price(level);
-  return { balance, level, levelPrice };
+  const contractBalance = await ad3Contract.balanceOf(imContract.address);
+  return { userBalance, level, levelPrice, contractBalance };
 };
 
-async function prepareToken(signer: SignerWithAddress, params: TokenParams) {
+async function prepareContext(
+  signer: SignerWithAddress,
+  context?: Partial<Context>
+) {
   const iconUri =
     "https://ipfs.parami.io/ipfs/QmWjFHRBL56GDsojZZNmzgq1oeYKqFnz7M28viVmDDz1xm";
   await imContract
@@ -227,18 +275,22 @@ async function prepareToken(signer: SignerWithAddress, params: TokenParams) {
     .connect(signer)
     .approve(imContract.address, 20n * 10n ** 18n);
   console.log("finish approve");
-  await imContract.connect(signer).mint(iconUri, 0);
-  console.log("finish mint");
-  if (!params) {
+  if (!context) {
+    console.log("finish prepareToken");
     return;
   }
-  if (!!params.fromLevel) {
-    console.log("fromLevel", params.fromLevel);
+  if (!!context.mintToken) {
+    await imContract.connect(signer).mint(iconUri, 0);
+    console.log("finish mint");
+  }
+  if (!!context.fromLevel) {
+    console.log("fromLevel", context.fromLevel);
     await imContract
       .connect(signer)
-      .upgradeTo(params.tokenId, params.fromLevel);
+      .upgradeTo(context!.tokenId!, context.fromLevel);
+    console.log("finish upgradeTo");
   }
-  console.log("finish upgradeTo");
+  console.log("finish prepareToken");
 }
 
 async function _beforeEach() {
