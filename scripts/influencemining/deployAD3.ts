@@ -26,9 +26,9 @@ async function deployAd3ForTest(adminAddress: string): Promise<AD3> {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-// deployAd3().catch((error) => {
-//   console.error(error);
-//   process.exitCode = 1;
-// });
+deployAd3ForTest("0x9F883b12fD0692714C2f28be6C40d3aFdb9081D3").catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 
 export { deployAd3ForTest as deployAd3 };
