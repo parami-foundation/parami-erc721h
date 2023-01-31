@@ -113,6 +113,10 @@ contract EIP5489ForInfluenceMining is IERC721H, ERC721EnumerableUpgradeable, Own
         ad3Contract.transfer(owner(), allBalance);
     }
 
+    function updateAd3Address(address _ad3Address) public onlyOwner() {
+        ad3Contract = IERC20(_ad3Address);
+    }
+
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
         require(
             _exists(_tokenId),
