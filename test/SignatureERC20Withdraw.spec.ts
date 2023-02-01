@@ -199,7 +199,6 @@ describe("SignatureERC20Withdraw", () => {
           before = await getStat();
           try {
             await utContract.withdraw(
-              _params.attester.address,
               _params.to,
               _params.chainId,
               _params.amount,
@@ -324,6 +323,7 @@ const _beforeEach = async () => {
   utContract = (await upgrades.deployProxy(factory, [
     ad3Contract.address,
     chainIdInContract /**goerli */,
+    owner.address,
   ])) as SignatureERC20Withdraw;
   await utContract.deployed();
 };
