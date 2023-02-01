@@ -7,7 +7,11 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "../roles/OwnerWithdrawableUpgradable.sol";
 import "../roles/OwnerPausableUpgradable.sol";
 
-contract SignatureERC20Withdraw is OwnableUpgradeable, OwnerWithdrawableUpgradable, OwnerPausableUpgradable {
+contract SignatureERC20Withdraw is
+    OwnableUpgradeable,
+    OwnerWithdrawableUpgradable,
+    OwnerPausableUpgradable
+{
     /**
      * @notice erc20 address under withdraw
      */
@@ -22,18 +26,31 @@ contract SignatureERC20Withdraw is OwnableUpgradeable, OwnerWithdrawableUpgradab
      **/
     mapping(address => mapping(uint256 => bool)) public addressNonceUsed;
 
-    function initialize(address _ad3Address, uint256 _chainId)
-        public
-        initializer
-    {
+    address public attester;
+
+    function initialize(
+        address _ad3Address,
+        uint256 _chainId,
+        address _attester
+    ) public initializer {
         __Ownable_init();
         __Pausable_init();
         ad3Address = IERC20(_ad3Address);
         chainId = _chainId;
+        attester = _attester;
+    }
+
+    function manageInitializerParams(
+        address _ad3Address,
+        uint256 _chainId,
+        address _attester
+    ) public onlyOwner {
+        ad3Address = IERC20(_ad3Address);
+        chainId = _chainId;
+        attester = _attester;
     }
 
     function withdraw(
-        address attester,
         address to,
         uint256 _chainId,
         uint256 amount,
