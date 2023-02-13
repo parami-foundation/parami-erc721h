@@ -17,14 +17,16 @@ contract EIP5489ForInfluenceMining is
     mapping(uint256 => address) public tokenId2AuthorizedAddress;
     mapping(uint256 => string) public tokenId2ImageUri;
     mapping(uint256 => string) public tokenId2Hyperlink;
-    
+
     string private defaultHyperlinkPrefix;
     IERC20 ad3Contract;
 
     mapping(uint256 => uint256) public token2Level;
     mapping(uint256 => uint256) public level2Price;
 
-    function initialize(address _ad3Address) initializer public {
+    mapping(uint256 => uint256) public token2LinkTargetToken;
+
+    function initialize(address _ad3Address) public initializer {
         __ERC721_init("Hyperlink NFT Collection", "HNFT");
         __Ownable_init();
         ad3Contract = IERC20(_ad3Address);
@@ -140,6 +142,10 @@ contract EIP5489ForInfluenceMining is
         _upgradeTo(tokenId, targetLevel);
     }
 
+    function linkTo(uint256 tokenId, uint256 targetTokenId) public onlyTokenOwner(tokenId) {
+        token2LinkTargetToken[tokenId] = targetTokenId;
+    }
+
     function manageLevelPrices(
         uint256[] calldata levels,
         uint256[] calldata prices
@@ -158,15 +164,17 @@ contract EIP5489ForInfluenceMining is
         ad3Contract.transfer(owner(), allBalance);
     }
 
-    function updateAd3Address(address _ad3Address) public onlyOwner() {
+    function updateAd3Address(address _ad3Address) public onlyOwner {
         ad3Contract = IERC20(_ad3Address);
     }
 
-    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
-        require(
-            _exists(_tokenId),
-            "URI query for nonexistent token"
-        );
+    function tokenURI(uint256 _tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
+        require(_exists(_tokenId), "URI query for nonexistent token");
 
         return
             string(

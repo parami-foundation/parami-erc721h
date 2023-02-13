@@ -50,6 +50,11 @@ contract SignatureERC20Withdraw is
         attester = _attester;
     }
 
+    function updateInitParams(address _ad3Address, uint256 _chainId) external {
+        ad3Address = IERC20(_ad3Address);
+        chainId = _chainId;
+    }
+
     function withdraw(
         address to,
         uint256 _chainId,

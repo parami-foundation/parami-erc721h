@@ -6,10 +6,10 @@
 import { ethers, upgrades } from "hardhat";
 
 async function deploy() {
-  const erc721HBatchCollection = await ethers.getContractFactory(
+  const factory = await ethers.getContractFactory(
     "EIP5489ForInfluenceMining"
   );
-  const instance = await upgrades.deployProxy(erc721HBatchCollection, []);
+  const instance = await upgrades.deployProxy(factory, ["0xf6b2923717175185a626790FF78B6f37DAbb3565"]);
   await instance.deployed();
 
   console.log("eip5489 influence mining proxy deployed to", instance.address);
@@ -39,7 +39,7 @@ const validate = async () => {
 };
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-upgrade().catch((error) => {
+deploy().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
