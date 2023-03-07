@@ -44,9 +44,6 @@ contract AD3 is Context {
     bool public isLosslessOn = true;
     ILssController public lossless;
 
-    // parami nft id => bidder eth account => bid amount
-    mapping (uint256 => mapping (address => uint256)) public bidAd3;
-
 
     constructor(uint256 totalSupply_, string memory name_, string memory symbol_, address admin_, address recoveryAdmin_, uint256 timelockPeriod_, address lossless_) {
         _mint(_msgSender(), totalSupply_);
@@ -70,7 +67,6 @@ contract AD3 is Context {
     event LosslessTurnOffProposal(uint256 _turnOffDate);
     event LosslessOff();
     event LosslessOn();
-    event NftBidded(uint256 indexed parami_nft_id, address indexed bidder, uint256 bid_amount);
 
 
     // --- LOSSLESS modifiers ---
@@ -113,18 +109,6 @@ contract AD3 is Context {
     modifier onlyRecoveryAdmin() {
         require(_msgSender() == recoveryAdmin, "LERC20: Must be recovery admin");
         _;
-    }
-
-    // --- Bid Ad3 ---
-    function bidNft(uint256 parami_nft_id, uint256 bid_amount) public {
-        require(bid_amount > 0, "bid amount must be greater than 0");
-        require(bidAd3[parami_nft_id][_msgSender()] == 0, "bidder already bid this nft");
-        require(_balances[_msgSender()] >= bid_amount, "bidder does not have enough ad3 to bid");
-
-        _balances[_msgSender()] -= bid_amount;
-        bidAd3[parami_nft_id][_msgSender()] = bid_amount;
-
-        emit NftBidded(parami_nft_id, _msgSender(), bid_amount);
     }
 
     // --- LOSSLESS management ---
