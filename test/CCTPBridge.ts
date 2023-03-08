@@ -22,9 +22,9 @@ describe("CCTPBridge", function () {
     bridgeContract = await bridgeFactory.deploy(ad3Contract.address);
   });
 
-  it("Should Bid Nft", async function () {
+  it("Should Deposit Ad3", async function () {
     await ad3Contract.approve(bridgeContract.address, 100);
 
-    await expect(bridgeContract.bidNft(1, 100)).to.emit(bridgeContract, "NftBidded").withArgs(1, deployer.address, 100);
+    await expect(bridgeContract.depositForBurn(100)).to.emit(bridgeContract, "Deposited").withArgs(deployer.address, 100);
   });
 });
