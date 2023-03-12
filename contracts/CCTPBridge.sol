@@ -15,15 +15,15 @@ contract CCTPBridge {
 
     AD3 ad3;
 
-    event Deposited(address indexed depositer, uint256 amount);
+    event Deposited(address indexed depositer, uint256 amount, bytes32 indexed recepient, uint256 destinationDomain);
 
-    function depositForBurn(uint256 amount) public {
+    function depositForBurn(uint256 amount, uint256 destinationDomain, bytes32 recepient) public {
         require(amount > 0, "amount must be greater than 0");
         require(ad3.allowance(_msgSender(), address(this)) >= amount, "bidder does not approve enough ad3 to bid");
 
         ad3.transferFrom(_msgSender(), address(this), amount);
 
-        emit Deposited(_msgSender(), amount);
+        emit Deposited(_msgSender(), amount, recepient, destinationDomain);
     }
 
     function _msgSender() internal view virtual returns (address) {
