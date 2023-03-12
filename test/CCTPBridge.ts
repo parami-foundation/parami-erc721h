@@ -25,6 +25,8 @@ describe("CCTPBridge", function () {
   it("Should Deposit Ad3", async function () {
     await ad3Contract.approve(bridgeContract.address, 100);
 
-    await expect(bridgeContract.depositForBurn(100)).to.emit(bridgeContract, "Deposited").withArgs(deployer.address, 100);
+    const recepientBytes = ethers.utils.formatBytes32String("abdc");
+
+    await expect(bridgeContract.depositForBurn(100, 1, recepientBytes)).to.emit(bridgeContract, "Deposited").withArgs(deployer.address, 100, 1, recepientBytes);
   });
 });

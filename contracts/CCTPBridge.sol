@@ -15,7 +15,7 @@ contract CCTPBridge {
 
     AD3 ad3;
 
-    event Deposited(address indexed depositer, uint256 amount, bytes32 indexed recepient, uint256 destinationDomain);
+    event Deposited(address indexed depositer, uint256 amount, uint256 destinationDomain, bytes32 indexed recepient );
 
     function depositForBurn(uint256 amount, uint256 destinationDomain, bytes32 recepient) public {
         require(amount > 0, "amount must be greater than 0");
@@ -23,7 +23,7 @@ contract CCTPBridge {
 
         ad3.transferFrom(_msgSender(), address(this), amount);
 
-        emit Deposited(_msgSender(), amount, recepient, destinationDomain);
+        emit Deposited(_msgSender(), amount, destinationDomain, recepient);
     }
 
     function _msgSender() internal view virtual returns (address) {
