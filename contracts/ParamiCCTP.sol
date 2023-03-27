@@ -19,9 +19,9 @@ contract ParamiCCTP is Ownable {
         chainDomain = _chainDomain;
     }
 
-    event Deposited(uint256 nonce, uint256 assetId, uint256 amount, uint256 sourceDomain, address sender, uint256 destDomain, bytes destinationRecepient);
+    event Deposited(indexed uint256 nonce, indexed uint256 assetId, uint256 amount, uint256 sourceDomain, indexed address sender, uint256 destDomain, bytes destinationRecepient);
 
-    event Withdrawed(uint256 nonce, uint256 assetId, uint256 amount, uint256 sourceDomain, bytes sender, uint256 destDomain, address destinationRecepient);
+    event Withdrawed(indexed uint256 nonce, indexed uint256 assetId, uint256 amount, uint256 sourceDomain, bytes sender, uint256 destDomain, indexed address destinationRecepient);
 
 
     function registerAsset(uint256 assetId, address erc20Contract) public onlyOwner {
