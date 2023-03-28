@@ -19,9 +19,9 @@ contract ParamiCCTP is Ownable {
         chainDomain = _chainDomain;
     }
 
-    event Deposited(indexed uint256 nonce, indexed uint256 assetId, uint256 amount, uint256 sourceDomain, indexed address sender, uint256 destDomain, bytes destinationRecepient);
+    event Deposited(uint256 indexed nonce, uint256 indexed assetId, uint256 amount, uint256 sourceDomain, address indexed sender, uint256 destDomain, bytes destinationRecepient);
 
-    event Withdrawed(indexed uint256 nonce, indexed uint256 assetId, uint256 amount, uint256 sourceDomain, bytes sender, uint256 destDomain, indexed address destinationRecepient);
+    event Withdrawed(uint256 indexed nonce, uint256 indexed assetId, uint256 amount, uint256 sourceDomain, bytes sender, uint256 destDomain, address indexed destinationRecepient);
 
 
     function registerAsset(uint256 assetId, address erc20Contract) public onlyOwner {
@@ -38,7 +38,7 @@ contract ParamiCCTP is Ownable {
         emit Deposited(nonce, assetId, amount, chainDomain, _msgSender(), destinationDomain, destinationRecepient);
     }
 
-    function withdraw(uint256 nonce, uint256 assetId, uint256 amount, uint256 sourceDomain, bytes memory sourceSender, address destinationRecepient, bytes memory signature) public onlyOwner {
+    function withdraw(uint256 nonce, uint256 assetId, uint256 amount, uint256 sourceDomain, bytes memory sourceSender, address destinationRecepient, bytes memory signature) public {
         address signer = verifySignature(nonce, assetId, amount, sourceDomain, sourceSender, destinationRecepient, signature);
         require(sourceDomainToNonceToUsed[sourceDomain][nonce] == false, "nonce already used");
         require(signer == this.owner(), "invalid signature");
