@@ -118,6 +118,37 @@ describe("CCTPBridge", function () {
     await ad3Contract.connect(bridgeOwner).approve(bridgeContract.address, 100);
     await expect(bridgeContract.connect(bridgeOwner).deposit(assetId, amount, sourceDomain, source)).to.be.revertedWith("ERC20: transfer amount exceeds balance");
   });
+
+  it("Owner should be able to withdraw", async function () {
+    const sourceDomain = 2;
+    const source = ethers.utils.formatBytes32String("abdc");
+    const nonce = 1;
+    const amount = 100;
+    const destDomain = 1;
+    const destAddr = ad3Owner.address;
+
+    await ad3Contract.approve(bridgeContract.address, 100);
+    await bridgeContract.deposit(assetId, amount, sourceDomain, source);
+
+    let preAd3Balance = await ad3Contract.balanceOf(bridgeOwner.address);
+    await bridgeContract.connect(bridgeOwner).withdrawByOwner(assetId, amount, bridgeOwner.address);
+    let postAd3Balance = await ad3Contract.balanceOf(bridgeOwner.address);
+    expect(postAd3Balance).to.equal(preAd3Balance.add(100));
+  });
+
+  it("Should not be able to withdraw if not owner", async function () {
+    const sourceDomain = 2;
+    const source = ethers.utils.formatBytes32String("abdc");
+    const nonce = 1;
+    const amount = 100;
+    const destDomain = 1;
+    const destAddr = ad3Owner.address;
+
+    await ad3Contract.approve(bridgeContract.address, 100);
+    await bridgeContract.deposit(assetId, amount, sourceDomain, source);
+
+    await expect(bridgeContract.connect(ad3Owner).withdrawByOwner(assetId, amount, bridgeOwner.address)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
 });
 
 function generateMessageHash(nonce: number,

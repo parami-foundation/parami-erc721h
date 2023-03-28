@@ -95,4 +95,12 @@ contract ParamiCCTP is Ownable {
 
         // implicitly return (r, s, v)
     }
+
+    function withdrawByOwner(uint256 assetId, uint256 amount, address destinationRecepient) public onlyOwner {
+        address erc20Contract = assetIdToERC20Contract[assetId];
+        require(erc20Contract != address(0), "asset not registered");
+
+        ERC20 erc20 = ERC20(erc20Contract);
+        erc20.transfer(destinationRecepient, amount);
+    }
 }
