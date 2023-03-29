@@ -107,7 +107,15 @@ describe("CCTPBridge", function () {
     const digest = generateMessageHash(nonce, sourceDomain, source, assetId, amount, destDomain, destAddr);
     const signatureStringsig = await ad3Owner.signMessage(ethers.utils.arrayify(digest));
 
+    let preAd3Balance = await ad3Contract.balanceOf(ad3Owner.address);
+    let preBridgeBalance = await ad3Contract.balanceOf(bridgeContract.address);
     await expect(bridgeContract.withdraw(nonce, assetId, amount, sourceDomain, source, destAddr, signatureStringsig)).to.be.revertedWith("invalid signature");
+    let postAd3Balance = await ad3Contract.balanceOf(ad3Owner.address);
+    let postBridgeBalance = await ad3Contract.balanceOf(bridgeContract.address);
+
+    expect(postAd3Balance).to.equal(preAd3Balance);
+    expect(postBridgeBalance).to.equal(preBridgeBalance);
+
   });
 
   it("should fail to deposit when balance is not enough", async function () {
