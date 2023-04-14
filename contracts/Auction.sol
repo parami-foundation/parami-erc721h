@@ -4,10 +4,12 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IERC721H.sol";
 
 contract Auction is Ownable{
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     struct Bid {
         uint256 bidId;
@@ -17,9 +19,7 @@ contract Auction is Ownable{
         string  slotUri;
     }
 
-    IERC20 public token;
-    IERC721H public hNFT;
-    address public relayerAddress;
+    address private relayerAddress;
     mapping(uint256 => Bid) public highestBid;
 
     constructor(address _relayerAddress) {
@@ -28,7 +28,6 @@ contract Auction is Ownable{
 
     event BidSuccessed(uint256 bidId, address bidder, uint256 amount);
     event RefundPreviousBidIncreased(uint256 bidId, uint256 hNFTId, address tokenAddress, address refunder, uint256 amount);
-    event PayOutIncreased(uint256 bidId, uint256 hNFTId, address payoutAddress, uint256 amount);
 
     function bid(
         uint256 hNFTId,
@@ -36,8 +35,8 @@ contract Auction is Ownable{
         address tokenContractAddr,
         uint256 fractionAmount,
         string memory slotUri
-    ) public payable {
-
+    ) public {
+        require(hNFTId > 0, "hNFTId must be greater than 0.");
         require(fractionAmount > 0, "Bid amount must be greater than 0.");
         require(hNFTContractAddr != address(0) && tokenContractAddr != address(0), "The hNFT and token contract can not be address(0).");
         _bid(hNFTId, hNFTContractAddr, tokenContractAddr, fractionAmount, slotUri);
@@ -53,9 +52,9 @@ contract Auction is Ownable{
         return highestBid[hNFTId].amount == 0;
     }
 
-    function _isMore120Percent(uint num1, uint num2) private pure returns(bool) {
-        uint result = num1 * 12 / 10;
-        return num2 >= result;
+    function _isMore120Percent(uint256 lastBidAmount, uint256 bidAmount) private pure returns(bool) {
+        uint256 result = lastBidAmount.mul(12).div(10);
+        return bidAmount >= result;
     }
 
     function _bid(
@@ -66,8 +65,8 @@ contract Auction is Ownable{
         string memory slotUri
     ) private {
 
-        hNFT = IERC721H(hNFTContractAddr);
-        token = IERC20(tokenContractAddr);
+        IERC721H hNFT = IERC721H(hNFTContractAddr);
+        IERC20 token = IERC20(tokenContractAddr);
 
         require(token.balanceOf(_msgSender()) >= fractionAmount, "balance not enough");
         require(token.allowance(_msgSender(), address(this)) >= fractionAmount, "allowance not enough");
@@ -75,13 +74,14 @@ contract Auction is Ownable{
         if(!_isDefaultBalance(hNFTId)) {
             Bid memory previousBidder = highestBid[hNFTId];
             require(_isMore120Percent(previousBidder.amount, fractionAmount), "The bid is less than 120%");
-            token.transfer(previousBidder.bidder, previousBidder.amount);
+            token.safeTransfer(previousBidder.bidder, previousBidder.amount);
+
             emit RefundPreviousBidIncreased(previousBidder.bidId, hNFTId, previousBidder.tokenContract, previousBidder.bidder, previousBidder.amount);
         }
 
         highestBid[hNFTId] = Bid(_generateRandomNumber(), fractionAmount, _msgSender(), tokenContractAddr, slotUri);
-        token.transferFrom(_msgSender(), address(this), fractionAmount);
-        token.transfer(relayerAddress, fractionAmount);
+        token.safeTransferFrom(_msgSender(), address(this), fractionAmount);
+        token.approve(relayerAddress, fractionAmount);
         hNFT.setSlotUri(hNFTId, slotUri);
 
         emit BidSuccessed(highestBid[hNFTId].bidId, _msgSender(), fractionAmount);

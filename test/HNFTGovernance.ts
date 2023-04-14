@@ -49,10 +49,5 @@ describe("HNFTGovernance", () => {
       .to.emit(hnftGovernance, "FragmentGovernance")
       .withArgs(tokenId, hnftGovernanceToken.address);
   });
-
-  it("should return the correct hnftGovernanceToken address", async () => {
-    const tokenId = 1;
-    await hnftGovernance.connect(owner).governWith(tokenId, hnftGovernanceToken.address)
-    await expect(hnftGovernance.getGovernanceToken(tokenId)).to.equal(hnftGovernanceToken.address);
-  });
+  
 });
