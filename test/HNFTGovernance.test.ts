@@ -39,10 +39,10 @@ describe("HNFTGovernance", () => {
     const tokenId = 1;
     await expect(
       hnftGovernance.connect(addr1).governWith(tokenId, hnftGovernanceToken.address)
-    ).to.be.revertedWith("Only the NFT owner can fragment");
+    ).to.be.revertedWith("Only the NFT owner can governed");
   });
 
-  it("should emit event when NFT is fragmented", async () => {
+  it("should emit event when NFT is governed", async () => {
     const tokenId = 1;
 
     await expect(hnftGovernance.connect(owner).governWith(tokenId, hnftGovernanceToken.address))
