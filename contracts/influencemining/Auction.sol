@@ -17,89 +17,95 @@ contract Auction is Ownable{
         uint256 bidId;
         uint256 amount;
         address bidder;
-        address tokenContract;
         string  slotUri;
     }
 
-    struct NewBid {
+    struct PreBid {
         uint256 bidId;
         uint256 amount;
     }
 
     address private relayerAddress;
     address private ad3Address;
+    address private hnftGoverAddress;
     mapping(uint256 => Bid) public curBid;
-    mapping(uint256 => mapping(address => NewBid)) public newBids;
+    mapping(uint256 => mapping(address => PreBid)) public preBids;
 
-
-    constructor(address _relayerAddress, address _ad3Address) {
+    constructor(address _relayerAddress, address _ad3Address, address _hnftGoverAddress) {
         relayerAddress = _relayerAddress;
         ad3Address = _ad3Address;
+        hnftGoverAddress = _hnftGoverAddress;
     }
 
     event BidSuccessed(uint256 bidId, address bidder, uint256 amount);
-    event BidBalanceRefunded(uint256 bidId, uint256 hNFTId, address governanceTokenAddr, address to, uint256 amount);
+    event BidBalanceRefunded(uint256 bidId, uint256 hNFTId, address to, uint256 amount);
 
-    function newBid(uint256 hNFTId, uint256 deposit) public returns (uint256 curBidId, uint256 newBidId) {
+    function preBid(uint256 hNFTId, uint256 deposit) public returns (uint256, uint256) {
         require(deposit > 0, "ad3Deposit must be greater than 0.");
         require(hNFTId > 0, "hNFTId must be greater than 0.");
-        IERC20 token = IERC20(ad3Address);
-        require(token.balanceOf(_msgSender()) >= deposit, "AD3 balance not enough");
-        require(token.allowance(_msgSender(), address(this)) >= deposit, "allowance not enough");
-        token.safeTransferFrom(_msgSender(), address(this), deposit);
-        uint256 bidId = _generateRandomNumber();
-        newBids[hNFTId][_msgSender()] = NewBid(bidId, deposit);
-        curBidId = curBid[hNFTId].bidId;
-        newBidId = bidId;
+        IERC20 ad3Add = IERC20(ad3Address);
+        require(ad3Add.balanceOf(_msgSender()) >= deposit, "AD3 balance not enough");
+        require(ad3Add.allowance(_msgSender(), address(this)) >= deposit, "allowance not enough");
+        ad3Add.safeTransferFrom(_msgSender(), address(this), deposit);
+        uint256 preBidId = _generateRandomNumber();
+        preBids[hNFTId][_msgSender()] = PreBid(preBidId, deposit);
+        uint256 curBidId = curBid[hNFTId].bidId;
+        return (curBidId, preBidId);
     }
 
     function commitBid(
         uint256 hNFTId,
         address hNFTContractAddr,
-        address governanceAddr,
         uint256 governanceTokenAmount,
         string memory slotUri,
-        bytes memory _signature
+        bytes memory _signature,
+        uint256 curBidId,
+        uint256 preBidId
     ) public {
         require(hNFTId > 0, "hNFTId must be greater than 0.");
         require(governanceTokenAmount > 0, "Bid amount must be greater than 0.");
-        require(hNFTContractAddr != address(0) && governanceAddr != address(0), "The hNFT and governance contract can not be address(0).");
-        address governanceTokenAddr = HNFTGovernance(governanceAddr).getGovernanceToken(hNFTId);
-        require(governanceTokenAddr != address(0), "The governance token address can not be address(0).");
-        require(verify(hNFTId, _signature), "Invalid Signer!");
+        require(hNFTContractAddr != address(0), "The hNFT and governance contract can not be address(0).");
+        require(curBidId == curBid[hNFTId].bidId, "Invalid curBidId");
+        require(preBidId == preBids[hNFTId][_msgSender()].bidId, "Invalid preBidId");
+        address governanceTokenAddr = HNFTGovernance(hnftGoverAddress).getGovernanceToken(hNFTContractAddr, hNFTId);
         IERC721H hNFT = IERC721H(hNFTContractAddr);
-        IERC20 token = IERC20(governanceTokenAddr);
-
+        IERC20 token = governanceTokenAddr == address(0) ? IERC20(ad3Address) : IERC20(governanceTokenAddr);
         require(token.balanceOf(_msgSender()) >= governanceTokenAmount, "balance not enough");
         require(token.allowance(_msgSender(), address(this)) >= governanceTokenAmount, "allowance not enough");
+        address _signAddress = recover(hNFTId, hNFTContractAddr, address(token), governanceTokenAmount, curBidId, preBidId, _signature);
+        require(verify(_signAddress), "Invalid Signer!");
 
-        if(!_isDefaultBalance(hNFTId)) {
-            Bid memory previousBidder = curBid[hNFTId];
-            require(_isMore120Percent(previousBidder.amount, governanceTokenAmount), "The bid is less than 120%");
-            token.safeTransfer(previousBidder.bidder, previousBidder.amount);
+        if(curBid[hNFTId].amount > 0) {
+            Bid memory currentBid = curBid[hNFTId];
+            require(_isAtLeast120Percent(currentBid.amount, governanceTokenAmount), "The bid is less than 120%");
+            token.safeTransfer(currentBid.bidder, currentBid.amount);
 
-            emit BidBalanceRefunded(previousBidder.bidId, hNFTId, previousBidder.tokenContract, previousBidder.bidder, previousBidder.amount);
+            emit BidBalanceRefunded(currentBid.bidId, hNFTId, currentBid.bidder, currentBid.amount);
         }
 
-        curBid[hNFTId] = Bid(_generateRandomNumber(), governanceTokenAmount, _msgSender(), governanceTokenAddr, slotUri);
+        curBid[hNFTId] = Bid(preBidId, governanceTokenAmount, _msgSender(), slotUri);
         token.safeTransferFrom(_msgSender(), address(this), governanceTokenAmount);
         token.approve(relayerAddress, governanceTokenAmount);
         hNFT.setSlotUri(hNFTId, slotUri);
 
-        emit BidSuccessed(curBid[hNFTId].bidId, _msgSender(), governanceTokenAmount);
+        emit BidSuccessed(preBidId, _msgSender(), governanceTokenAmount);
     }
 
-    function modifyRelayerAddress(address _relayerAddress) public onlyOwner {
+    function setRelayerAddress(address _relayerAddress) public onlyOwner {
         relayerAddress = _relayerAddress;
     }
 
-    // --- Private Function ---
-
-    function _isDefaultBalance(uint256 hNFTId) private view returns(bool) {
-        return curBid[hNFTId].amount == 0;
+    function recover(uint256 hnftId, address hNFTContractAddr, 
+                     address governanceTokenAddress, uint256 governanceTokenAmount, 
+                     uint256 curBidId, uint256 preBidId, bytes memory _signature) public pure returns (address) {
+        bytes32 _msgHash = ECDSA.toEthSignedMessageHash(
+            getMessageHash(hnftId, hNFTContractAddr, governanceTokenAddress, governanceTokenAmount, curBidId, preBidId)
+        );
+        return ECDSA.recover(_msgHash, _signature);
     }
 
-    function _isMore120Percent(uint256 lastBidAmount, uint256 bidAmount) private pure returns(bool) {
+    // --- Private Function ---
+    function _isAtLeast120Percent(uint256 lastBidAmount, uint256 bidAmount) private pure returns(bool) {
         uint256 result = lastBidAmount.mul(12).div(10);
         return bidAmount >= result;
     }
@@ -111,13 +117,13 @@ contract Auction is Ownable{
         return uint256(hash);
     }
 
-    function verify(uint256 hnftId, bytes memory _signature) public view returns (bool){
-        NewBid memory bid = newBids[hnftId][_msgSender()];
-        bytes32 _msgHash = ECDSA.toEthSignedMessageHash(getMessageHash(curBid[hnftId].bidId, bid.bidId, bid.amount));
-        return ECDSA.recover(_msgHash, _signature) == _msgSender();
+    function getMessageHash(uint256 hnftId, address hNFTContractAddr, 
+                            address governanceTokenAddress, uint256 governanceTokenAmount, 
+                            uint256 curBidId, uint256 preBidId) private pure returns (bytes32){
+        return keccak256(abi.encodePacked(hnftId, hNFTContractAddr, governanceTokenAddress, governanceTokenAmount, curBidId, preBidId));
     }
 
-    function getMessageHash(uint256 curBidId, uint256 newBidId, uint256 newBidTokenAmount) private pure returns (bytes32){
-        return keccak256(abi.encodePacked(curBidId, newBidId, newBidTokenAmount));
+    function verify(address _signerAddress) private view returns (bool) {
+        return _signerAddress == relayerAddress;
     }
 }
