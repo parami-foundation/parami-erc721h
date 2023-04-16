@@ -24,29 +24,29 @@ describe("HNFTGovernance", () => {
     await hnftGovernanceToken.deployed();
 
     const HNFTGovernance = await ethers.getContractFactory("HNFTGovernance");
-    hnftGovernance = await HNFTGovernance.deploy(hnftContract.address);
+    hnftGovernance = await HNFTGovernance.deploy();
     await hnftGovernance.deployed();
   });
 
-  it("should allow NFT owner to fragment and govern with token", async () => {
+  it("should allow NFT owner to govern with token", async () => {
     const tokenId = 1;
-    await hnftGovernance.connect(owner).governWith(tokenId, hnftGovernanceToken.address);
+    await hnftGovernance.connect(owner).governWith(hnftContract.address, tokenId, hnftGovernanceToken.address);
 
-    expect(await hnftGovernance.getGovernanceToken(tokenId)).to.equal(hnftGovernanceToken.address);
+    expect(await hnftGovernance.getGovernanceToken(hnftContract.address, tokenId)).to.equal(hnftGovernanceToken.address);
   });
 
-  it("should not allow non-owner to fragment and govern with token", async () => {
+  it("should not allow non-owner to govern with token", async () => {
     const tokenId = 1;
     await expect(
-      hnftGovernance.connect(addr1).governWith(tokenId, hnftGovernanceToken.address)
+      hnftGovernance.connect(addr1).governWith(hnftContract.address, tokenId, hnftGovernanceToken.address)
     ).to.be.revertedWith("Only the NFT owner can governed");
   });
 
   it("should emit event when NFT is governed", async () => {
     const tokenId = 1;
 
-    await expect(hnftGovernance.connect(owner).governWith(tokenId, hnftGovernanceToken.address))
-      .to.emit(hnftGovernance, "FragmentGovernance")
+    await expect(hnftGovernance.connect(owner).governWith(hnftContract.address, tokenId, hnftGovernanceToken.address))
+      .to.emit(hnftGovernance, "Governance")
       .withArgs(tokenId, hnftGovernanceToken.address);
   });
   

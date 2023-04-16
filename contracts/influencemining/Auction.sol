@@ -37,7 +37,8 @@ contract Auction is Ownable{
         hnftGoverAddress = _hnftGoverAddress;
     }
 
-    event BidSuccessed(uint256 bidId, address bidder, uint256 amount);
+    event PreBidSuccessed(uint256 indexed curBidId, uint256 indexed preBidId, uint256 hNFTId, address bidder, uint256 deposit);
+    event BidSuccessed(uint256 indexed curBidId, uint256 indexed preBidId, address bidder, uint256 amount);
     event BidBalanceRefunded(uint256 bidId, uint256 hNFTId, address to, uint256 amount);
 
     function preBid(uint256 hNFTId, uint256 deposit) public returns (uint256, uint256) {
@@ -49,7 +50,9 @@ contract Auction is Ownable{
         ad3Add.safeTransferFrom(_msgSender(), address(this), deposit);
         uint256 preBidId = _generateRandomNumber();
         preBids[hNFTId][_msgSender()] = PreBid(preBidId, deposit);
-        uint256 curBidId = curBid[hNFTId].bidId;
+        uint256 curBidId = curBid[hNFTId].bidId != 0 ? curBid[hNFTId].bidId : 0;
+
+        emit PreBidSuccessed(curBidId, preBidId, hNFTId, _msgSender(), deposit);
         return (curBidId, preBidId);
     }
 
@@ -85,14 +88,23 @@ contract Auction is Ownable{
 
         curBid[hNFTId] = Bid(preBidId, governanceTokenAmount, _msgSender(), slotUri);
         token.safeTransferFrom(_msgSender(), address(this), governanceTokenAmount);
-        token.approve(relayerAddress, governanceTokenAmount);
+        token.approve(relayerAddress, governanceTokenAmount.add(token.allowance(address(this), relayerAddress)));
         hNFT.setSlotUri(hNFTId, slotUri);
 
-        emit BidSuccessed(preBidId, _msgSender(), governanceTokenAmount);
+        IERC20 ad3Add = IERC20(ad3Address);
+        uint256 preAmount = preBids[hNFTId][_msgSender()].amount;
+        preBids[hNFTId][_msgSender()] = PreBid(0, 0);
+        ad3Add.safeTransfer(_msgSender(), preAmount);
+
+        emit BidSuccessed(curBidId, preBidId, _msgSender(), governanceTokenAmount);
     }
 
     function setRelayerAddress(address _relayerAddress) public onlyOwner {
         relayerAddress = _relayerAddress;
+    }
+
+    function getRelayerAddress() public onlyOwner view returns (address){
+        return relayerAddress ;
     }
 
     function recover(uint256 hnftId, address hNFTContractAddr, 
