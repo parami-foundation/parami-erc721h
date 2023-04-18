@@ -244,6 +244,73 @@ describe("withdrawAllAd3", () => {
   });
 });
 
+describe("kolWhiteListManagement", () => {
+  let nonOwner: Signer;
+  let addr1: Signer;
+  let addr2: Signer;
+
+  beforeEach(async function () {
+    await _beforeEach();
+    [owner, nonOwner, addr1, addr2] = await ethers.getSigners();
+  });
+
+  // Test case 1 & 3
+  it("Should allow the owner to add addresses to the whitelist", async function () {
+    const addrArray = [await addr1.getAddress(), await addr2.getAddress()];
+    await imContract.connect(owner).addToKolWhiteList(addrArray);
+
+    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(true);
+    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(true);
+  });
+
+  // Test case 2 & 4
+  it("Should allow the owner to remove addresses from the whitelist", async function () {
+    const addrArray = [await addr1.getAddress(), await addr2.getAddress()];
+    await imContract.connect(owner).addToKolWhiteList(addrArray);
+
+    await imContract.connect(owner).removeFromKolWhiteList(addrArray);
+
+    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(false);
+    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(false);
+  });
+
+  // Test case 5
+  it("Should handle adding and removing the same address multiple times", async function () {
+    const addr = await addr1.getAddress();
+
+    await imContract.connect(owner).addToKolWhiteList([addr]);
+    await imContract.connect(owner).removeFromKolWhiteList([addr]);
+    await imContract.connect(owner).addToKolWhiteList([addr]);
+
+    expect(await imContract.kolWhiteList(addr)).to.equal(true);
+  });
+
+  // Test case 6
+  it("Should handle adding and removing multiple addresses in a single transaction", async function () {
+    const addrArray1 = [await addr1.getAddress(), await addr2.getAddress()];
+    const addrArray2 = [await addr2.getAddress(), await addr1.getAddress()];
+
+    await imContract.connect(owner).addToKolWhiteList(addrArray1);
+    await imContract.connect(owner).removeFromKolWhiteList(addrArray2);
+
+    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(false);
+    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(false);
+  });
+
+  // Negative Test case for 1
+  it("Should not allow a non-owner to add addresses to the whitelist", async function () {
+    const addrArray = [await addr1.getAddress(), await addr2.getAddress()];
+    await expect(imContract.connect(nonOwner).addToKolWhiteList(addrArray)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  // Negative Test case for 2
+  it("Should not allow a non-owner to remove addresses from the whitelist", async function () {
+    const addrArray = [await addr1.getAddress(), await addr2.getAddress()];
+    await imContract.connect(owner).addToKolWhiteList(addrArray);
+    await expect(imContract.connect(nonOwner).removeFromKolWhiteList(addrArray)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+});
+
 interface Context {
   tokenId: number;
   fromLevel: number;

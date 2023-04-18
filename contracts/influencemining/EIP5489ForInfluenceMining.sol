@@ -25,6 +25,7 @@ contract EIP5489ForInfluenceMining is
     mapping(uint256 => uint256) public level2Price;
 
     mapping(uint256 => uint256) public token2LinkTargetToken;
+    mapping(address => bool) public kolWhiteList;
 
     function initialize(address _ad3Address) public initializer {
         __ERC721_init("Hyperlink NFT Collection", "HNFT");
@@ -166,6 +167,21 @@ contract EIP5489ForInfluenceMining is
 
     function updateAd3Address(address _ad3Address) public onlyOwner {
         ad3Contract = IERC20(_ad3Address);
+    }
+
+    function addToKolWhiteList(address[] calldata kolAddrs) public onlyOwner {
+        for (uint256 i = 0; i < kolAddrs.length; i++) {
+            kolWhiteList[kolAddrs[i]] = true;
+        }
+    }
+
+    function removeFromKolWhiteList(address[] calldata kolAddrs)
+        public
+        onlyOwner
+    {
+        for (uint256 i = 0; i < kolAddrs.length; i++) {
+            kolWhiteList[kolAddrs[i]] = false;
+        }
     }
 
     function tokenURI(uint256 _tokenId)
