@@ -9,7 +9,8 @@ use(chaiAsPromised);
 
 let imContract: EIP5489ForInfluenceMining;
 let owner: SignerWithAddress;
-let signer2: SignerWithAddress;
+let signer_with_enough_ad3: SignerWithAddress;
+let signer_with_no_ad3: SignerWithAddress;
 let tokenId: BigNumber;
 let ad3Contract: AD3;
 
@@ -121,11 +122,15 @@ describe("UpgradeLevel", function () {
     //prepare
     let tokenId = 1;
     let targetLevel = 2;
-    await prepareContext(signer2, { tokenId, fromLevel: 0, mintToken: true });
+    await prepareContext(signer_with_no_ad3, {
+      tokenId,
+      fromLevel: 0,
+      mintToken: true,
+    });
 
     //action
     await expect(
-      imContract.connect(signer2).upgradeTo(tokenId, targetLevel)
+      imContract.connect(signer_with_no_ad3).upgradeTo(tokenId, targetLevel)
     ).to.be.rejected.then((e) => {
       console.log(e.message);
       expect(e.message as string).contains("should have enough ad3");
@@ -152,6 +157,48 @@ describe("UpgradeLevel", function () {
     });
   });
   it("Should not upgradeLevel when approve ad3 is not enough", async () => {});
+
+  it("Upgrade token with targetLevel == 1", async () => {
+    const targetLevel = 1;
+    const tokenId = 1;
+    await prepareContext(owner, { tokenId, fromLevel: 0 });
+    //action
+    const before = await getStatToCompare(owner, 0);
+    await imContract.connect(owner).mint("http://123", 0);
+    // Call upgradeTo function with tokenId and targetLevel == 1
+    await imContract.connect(owner).upgradeTo(tokenId, targetLevel);
+    const after = await getStatToCompare(owner, 1);
+    // Check if the price difference is set to 0 (implicitly by the test not reverting with "should have enough ad3")
+  });
+
+  it("Upgrade token when sender is in kolWhiteList and signer has enough AD3", async () => {
+    // Add the sender to kolWhiteList
+    await imContract
+      .connect(owner)
+      .addToKolWhiteList([signer_with_enough_ad3.address]);
+
+    await prepareContext(signer_with_enough_ad3, { mintToken: true });
+    //action
+    // Set the sender's balance to cover the price difference between levels
+    await ad3Contract
+      .connect(owner)
+      .transfer(
+        signer_with_enough_ad3.address,
+        ethers.utils.parseUnits("1000")
+      );
+
+    // Call upgradeTo function with tokenId and a higher targetLevel
+    const initialBalance = await ad3Contract.balanceOf(
+      signer_with_enough_ad3.address
+    );
+    await imContract.connect(signer_with_enough_ad3).upgradeTo(1, 1);
+
+    // Check if the price difference is set to 0 by confirming the balance has not changed
+    const finalBalance = await ad3Contract.balanceOf(
+      signer_with_enough_ad3.address
+    );
+    expect(initialBalance).to.equal(finalBalance);
+  });
 });
 
 describe("mint", function () {
@@ -183,9 +230,13 @@ describe("mint", function () {
     const after = await getStatToCompare(owner, 1);
     //verify
     //1.ad3 balance changed as expected
-    expect(after.userBalance).to.be.eq(before.userBalance.sub(after.levelPrice));
+    expect(after.userBalance).to.be.eq(
+      before.userBalance.sub(after.levelPrice)
+    );
     //2.contract's ad3 balance changed as expected
-    expect(after.contractBalance).to.be.eq(before.contractBalance.add(after.levelPrice));
+    expect(after.contractBalance).to.be.eq(
+      before.contractBalance.add(after.levelPrice)
+    );
     //3.token's level eq to targetLevel
     expect(after.level).to.be.eq(targetLevel);
   });
@@ -195,7 +246,7 @@ describe("mint", function () {
     await prepareContext(owner, { fromLevel: 0 });
     //action
     const res = imContract.connect(owner).mint("http://123", targetLevel);
-    await expect(res).to.be.rejected.then(e => {
+    await expect(res).to.be.rejected.then((e) => {
       console.log(e.message);
       expect(e.message).contains("value out-of-bounds");
     });
@@ -206,10 +257,10 @@ describe("mint", function () {
     await prepareContext(owner, { fromLevel: 0 });
     //action
     const res = imContract.connect(owner).mint("http://123", targetLevel);
-    await expect(res).to.be.rejected.then(e => {
+    await expect(res).to.be.rejected.then((e) => {
       console.log(e.message);
       expect(e.message).contains("targetLevel should exist");
-    }); 
+    });
   });
 });
 
@@ -259,8 +310,12 @@ describe("kolWhiteListManagement", () => {
     const addrArray = [await addr1.getAddress(), await addr2.getAddress()];
     await imContract.connect(owner).addToKolWhiteList(addrArray);
 
-    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(true);
-    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(true);
+    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(
+      true
+    );
+    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(
+      true
+    );
   });
 
   // Test case 2 & 4
@@ -270,8 +325,12 @@ describe("kolWhiteListManagement", () => {
 
     await imContract.connect(owner).removeFromKolWhiteList(addrArray);
 
-    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(false);
-    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(false);
+    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(
+      false
+    );
+    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(
+      false
+    );
   });
 
   // Test case 5
@@ -293,21 +352,29 @@ describe("kolWhiteListManagement", () => {
     await imContract.connect(owner).addToKolWhiteList(addrArray1);
     await imContract.connect(owner).removeFromKolWhiteList(addrArray2);
 
-    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(false);
-    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(false);
+    expect(await imContract.kolWhiteList(await addr1.getAddress())).to.equal(
+      false
+    );
+    expect(await imContract.kolWhiteList(await addr2.getAddress())).to.equal(
+      false
+    );
   });
 
   // Negative Test case for 1
   it("Should not allow a non-owner to add addresses to the whitelist", async function () {
     const addrArray = [await addr1.getAddress(), await addr2.getAddress()];
-    await expect(imContract.connect(nonOwner).addToKolWhiteList(addrArray)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(
+      imContract.connect(nonOwner).addToKolWhiteList(addrArray)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
   // Negative Test case for 2
   it("Should not allow a non-owner to remove addresses from the whitelist", async function () {
     const addrArray = [await addr1.getAddress(), await addr2.getAddress()];
     await imContract.connect(owner).addToKolWhiteList(addrArray);
-    await expect(imContract.connect(nonOwner).removeFromKolWhiteList(addrArray)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(
+      imContract.connect(nonOwner).removeFromKolWhiteList(addrArray)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 });
 
@@ -361,7 +428,8 @@ async function prepareContext(
 }
 
 async function _beforeEach() {
-  [owner, signer2] = await ethers.getSigners();
+  [owner, signer_with_no_ad3, signer_with_enough_ad3] =
+    await ethers.getSigners();
   ad3Contract = await deployAd3(owner.address);
   await ad3Contract.proposeLosslessTurnOff();
   await ad3Contract.executeLosslessTurnOff();
@@ -374,4 +442,7 @@ async function _beforeEach() {
 
   const balanceOfOwner = await ad3Contract.balanceOf(owner.address);
   console.log("balanceOfOwner is ", balanceOfOwner);
+  // await ad3Contract
+  //   .connect(owner)
+  //   .transfer(signer_with_enough_ad3.address, 1000 * 10 ** 18);
 }

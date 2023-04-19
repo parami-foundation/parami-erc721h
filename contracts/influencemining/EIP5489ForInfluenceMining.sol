@@ -132,6 +132,10 @@ contract EIP5489ForInfluenceMining is
 
         uint256 balance = ad3Contract.balanceOf(msg.sender);
         uint256 priceDiff = targetLevelPrice - fromLevelPrice;
+        if (targetLevel == 1 || kolWhiteList[msg.sender] == true) {
+            priceDiff = 0;
+        }
+
         require(balance > priceDiff, "should have enough ad3");
 
         ad3Contract.transferFrom(msg.sender, address(this), priceDiff);
@@ -143,7 +147,10 @@ contract EIP5489ForInfluenceMining is
         _upgradeTo(tokenId, targetLevel);
     }
 
-    function linkTo(uint256 tokenId, uint256 targetTokenId) public onlyTokenOwner(tokenId) {
+    function linkTo(uint256 tokenId, uint256 targetTokenId)
+        public
+        onlyTokenOwner(tokenId)
+    {
         token2LinkTargetToken[tokenId] = targetTokenId;
     }
 
