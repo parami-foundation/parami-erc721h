@@ -250,6 +250,7 @@ describe("Auction", () => {
       const bidAmount = 100;
 
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      const beforBalance = await ad3Token.balanceOf(bidder1.address);
       const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const receipt1 = await transaction1.wait();
       const event1 = receipt1.events?.find((e) => e.event === "BidPrepared");
@@ -265,7 +266,6 @@ describe("Auction", () => {
       );
       
       const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
-      const beforBalance = await ad3Token.balanceOf(auction.address);
 
       const curBidRemain = 0;
       // payout 20 
@@ -280,7 +280,7 @@ describe("Auction", () => {
         preBidId,
         curBidRemain
       );
-      const afterBalance = await ad3Token.balanceOf(auction.address);
+      const afterBalance = await ad3Token.balanceOf(bidder1.address);
       expect(beforBalance).to.equal(afterBalance);
 
       const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
