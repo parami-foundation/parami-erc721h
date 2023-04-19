@@ -54,39 +54,30 @@ describe("Auction", () => {
   });
 
   describe("preBid", () => {
-    it("should fail when deposit is less than MIN_DEPOSIT", async () => {
-      const hNFTId = 1;
-      const deposit = 5;
-      await ad3Token.connect(bidder1).approve(auction.address, deposit);
-      await expect(auction.connect(bidder3).preBid(hNFT.address, hNFTId, deposit)).to.be.revertedWith("deposit not enough");
-    });
 
     it("should fail when user's balance is less than MIN_DEPOSIT", async () => {
       const hNFTId = 1;
-      const deposit = 10;
-      await expect(auction.connect(bidder3).preBid(hNFT.address, hNFTId, deposit)).to.be.revertedWith("AD3 balance not enough");
+      await expect(auction.connect(bidder3).preBid(hNFT.address, hNFTId)).to.be.revertedWith("AD3 balance not enough");
     });
     
     it("should fail when user's allowance is less than MIN_DEPOSIT", async () => {
       const hNFTId = 1;
-      const deposit = 10;
-      await expect(auction.connect(bidder2).preBid(hNFT.address, hNFTId, deposit)).to.be.revertedWith("allowance not enough");
+      await expect(auction.connect(bidder2).preBid(hNFT.address, hNFTId)).to.be.revertedWith("allowance not enough");
     });
     
 
     it("should successfully prepare a pre-bid even if nftAddress and nftId combination doesn't exist", async () => {
-
       const nonExistentId = 2;
-      const deposit = 10;
-      await expect(auction.connect(bidder2).preBid(hNFT.address, nonExistentId, deposit)).to.be.revertedWith("ERC721: invalid token ID");
+      await expect(auction.connect(bidder2).preBid(hNFT.address, nonExistentId)).to.be.revertedWith("ERC721: invalid token ID");
     });
     
 
     it("should allow users to preBid", async () => {
       const preBidAmount = 10;
+      const beforeAd3Balance = await ad3Token.balanceOf(bidder1.address);
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId, preBidAmount);
+      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
       const receipt = await transaction.wait();
       const event = receipt.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
@@ -95,15 +86,17 @@ describe("Auction", () => {
       const currentBid = await auction.curBid(hNFT.address, 1);
       expect(curBidId).to.equal(currentBid.bidId);
       expect(preBidId).to.be.equal(preBid.bidId);
+
+      const afterAd3Balance = await ad3Token.balanceOf(bidder1.address);
+      expect(afterAd3Balance).to.be.equal(beforeAd3Balance.sub(BigNumber.from(preBidAmount)));
     });
 
 
     it("Should not allow a new preBid while previous preBid hasn't been committed yet", async () => {
       const hNFTId = 1;
-      const preBidAmount = 10;
 
       await ad3Token.connect(bidder1).approve(auction.address, 10);
-      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId, preBidAmount);
+      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const receipt1 = await transaction1.wait();
       const event1 = receipt1.events?.find((e) => e.event === "BidPrepared");
       const [curBidId1, preBidId1] = [event1!.args!.curBidId, event1!.args!.preBidId];
@@ -111,7 +104,7 @@ describe("Auction", () => {
       expect(preBidId1).to.be.gt(0);
 
       await ad3Token.connect(bidder2).approve(auction.address, 10);
-      await expect(auction.connect(bidder2).preBid(hNFT.address, hNFTId, preBidAmount)).to.be.revertedWith("Last preBid still within the valid time");
+      await expect(auction.connect(bidder2).preBid(hNFT.address, hNFTId)).to.be.revertedWith("Last preBid still within the valid time");
     });
 
     it("Should allow a new preBid while previous preBid hasn't been committed yet and preBid timeout ", async () => {
@@ -119,7 +112,7 @@ describe("Auction", () => {
       const preBidAmount = 10;
 
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
-      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId, preBidAmount);
+      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const receipt1 = await transaction1.wait();
       const event1 = receipt1.events?.find((e) => e.event === "BidPrepared");
       const [curBidId1, preBidId1] = [event1!.args!.curBidId, event1!.args!.preBidId];
@@ -130,7 +123,7 @@ describe("Auction", () => {
       await ethers.provider.send("evm_mine");
 
       await ad3Token.connect(bidder2).approve(auction.address, preBidAmount);
-      const transaction2 = await auction.connect(bidder2).preBid(hNFT.address, hNFTId, preBidAmount);
+      const transaction2 = await auction.connect(bidder2).preBid(hNFT.address, hNFTId);
       const receipt2 = await transaction2.wait();
       const event2 = receipt2.events?.find((e) => e.event === "BidPrepared");
       const [curBidId2, preBidId2] = [event2!.args!.curBidId, event2!.args!.preBidId];
@@ -146,7 +139,7 @@ describe("Auction", () => {
       const bidAmount = 100;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId, preBidAmount);
+      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
       const receipt = await transaction.wait();
       const event = receipt.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
@@ -175,7 +168,7 @@ describe("Auction", () => {
       const errorSignBidAmount = 120;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId, preBidAmount);
+      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
       const receipt = await transaction.wait();
       const event = receipt.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
@@ -202,7 +195,7 @@ describe("Auction", () => {
       const bidAmount = 100;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId, preBidAmount);
+      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
       const receipt = await transaction.wait();
       const event = receipt.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
@@ -230,7 +223,7 @@ describe("Auction", () => {
       const preBidAmount = 10;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId, preBidAmount);
+      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
       const receipt = await transaction.wait();
       const event = receipt.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
@@ -251,13 +244,13 @@ describe("Auction", () => {
       )).to.be.revertedWith("ECDSA: invalid signature length");
     });
 
-    it("Should fail when preBid has already timed out", async function () {
+    it("Should success when preBid has already timed out", async () => {
       const hNFTId = 1;
       const preBidAmount = 10;
       const bidAmount = 100;
 
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
-      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId, preBidAmount);
+      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const receipt1 = await transaction1.wait();
       const event1 = receipt1.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event1!.args!.curBidId, event1!.args!.preBidId];
@@ -271,19 +264,28 @@ describe("Auction", () => {
         [1, hNFT.address, governanceToken.address, bidAmount, curBidId, preBidId]
       );
       
-      const signature = await bidder3.signMessage(ethers.utils.arrayify(messageHash));
+      const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
       const beforBalance = await ad3Token.balanceOf(auction.address);
-      auction.connect(bidder1).commitBid(
+
+      const curBidRemain = 0;
+      // payout 20 
+      const allowanceBalance = await governanceToken.allowance(auction.address, relayer.address);
+
+      await auction.connect(bidder1).commitBid(
         {hNFTId: hNFTId, hNFTContractAddr: hNFT.address},
         bidAmount,
         "slot-uri",
         signature,
         curBidId,
         preBidId,
-        0
-      )
+        curBidRemain
+      );
       const afterBalance = await ad3Token.balanceOf(auction.address);
       expect(beforBalance).to.equal(afterBalance);
+
+      const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
+      console.log(`auctionTokenBalance: ${auctionTokenBalance}`);
+      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalance));
     });
 
     it ("should allow users to commitBid", async () => {
@@ -292,7 +294,7 @@ describe("Auction", () => {
       const preBidAmount = 10;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
 
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address, hNFTId, preBidAmount);
+      const transaction = await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const receipt = await transaction.wait();
       const event = receipt.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
@@ -305,6 +307,9 @@ describe("Auction", () => {
       
       const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
       
+      const curBidRemain = 0;
+      const allowanceBalance = await governanceToken.allowance(auction.address, relayer.address);
+
       await auction.connect(bidder1).commitBid(
         {hNFTId: hNFTId, hNFTContractAddr: hNFT.address},
         bidAmount,
@@ -312,7 +317,7 @@ describe("Auction", () => {
         signature,
         curBidId,
         preBidId,
-        0
+        curBidRemain
       );
       
       const currentBid = await auction.curBid(hNFT.address, 1);
@@ -322,6 +327,9 @@ describe("Auction", () => {
       
       const preBidAmountRefund = await ad3Token.balanceOf(bidder1.address);
       expect(preBidAmountRefund).to.equal(100);
+
+      const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
+      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalance));
     });
 
     it("should refund the previous bidder when a new bid is submitted", async () => {
@@ -332,7 +340,7 @@ describe("Auction", () => {
       const hNFTId = 1;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount1);
       
-      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId, preBidAmount1);
+      const transaction1 = await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const receipt1 = await transaction1.wait();
       const event1 = receipt1.events?.find((e) => e.event === "BidPrepared");
       const [curBidId1, preBidId1] = [event1!.args!.curBidId, event1!.args!.preBidId];
@@ -364,7 +372,7 @@ describe("Auction", () => {
 
       await ad3Token.connect(bidder2).approve(auction.address, preBidAmount2);
 
-      const transaction2 = await auction.connect(bidder2).preBid(hNFT.address, hNFTId, preBidAmount2);
+      const transaction2 = await auction.connect(bidder2).preBid(hNFT.address, hNFTId);
       const receipt2 = await transaction2.wait();
       const event2 = receipt2.events?.find((e) => e.event === "BidPrepared");
       const [curBidId2, preBidId2] = [event2!.args!.curBidId, event2!.args!.preBidId];
@@ -377,7 +385,7 @@ describe("Auction", () => {
       const signature2 = await relayer.signMessage(ethers.utils.arrayify(messageHash2));
 
 
-      const curBidDomain = 80;
+      const curBidRemain = 80;
       // payout 20 
       await governanceToken.connect(relayer).transferFrom(auction.address, bidder3.address, 20);
       const allowanceBalance = await governanceToken.allowance(auction.address, relayer.address);
@@ -388,7 +396,7 @@ describe("Auction", () => {
         signature2,
         curBidId2,
         preBidId2,
-        curBidDomain
+        curBidRemain
       );
 
       const preBid1 = await auction.connect(bidder1).preBids(hNFT.address, 1);
@@ -407,11 +415,10 @@ describe("Auction", () => {
 
       const bidder2Balance = await ad3Token.balanceOf(bidder2.address);
       const bidder2TokenBalance = await governanceToken.balanceOf(bidder2.address);
-      const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
       expect(bidder2Balance).to.be.equal(120);
       expect(bidder2TokenBalance).to.be.equal(0);
-      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount2 - curBidDomain).add(allowanceBalance));
-
+      const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
+      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount2 - curBidRemain).add(allowanceBalance));
     });
   });
 
