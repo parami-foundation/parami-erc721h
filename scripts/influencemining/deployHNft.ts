@@ -20,7 +20,7 @@ async function upgrade() {
     "EIP5489ForInfluenceMining"
   );
   const instance = await upgrades.upgradeProxy(
-    "0x38e151C51fa45779a4DF8Ce0b7F9E051fF389D99",
+    "0x94F25955e84682BbE5301537f29442Ce1D5b7584",
     contractFactory
   );
   await instance.deployed();
@@ -33,13 +33,13 @@ const validate = async () => {
     "EIP5489ForInfluenceMining"
   );
   const instance = await upgrades.validateUpgrade(
-    "0x38e151C51fa45779a4DF8Ce0b7F9E051fF389D99",
+    "0x94F25955e84682BbE5301537f29442Ce1D5b7584",
     contractFactory
   );
 };
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-deploy().catch((error) => {
+upgrade().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
