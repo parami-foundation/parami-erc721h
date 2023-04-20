@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { MockAD3, Auction, EIP5489ForInfluenceMining, HNFTGovernance, AD3} from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -34,7 +34,10 @@ describe("Auction", () => {
     await ad3Token.transfer(bidder2.address, 120);
     await ad3Token.transfer(bidder3.address, 5);
 
-    auction = await Auction.deploy(relayer.address, ad3Token.address, governance.address);
+    const factory = await ethers.getContractFactory("Auction");
+    auction = (await upgrades.deployProxy(factory, [
+      relayer.address, ad3Token.address, governance.address
+    ])) as Auction;
     await auction.deployed();
 
     governanceToken = await MockAD3.deploy();
@@ -269,7 +272,7 @@ describe("Auction", () => {
 
       const curBidRemain = 0;
       // payout 20 
-      const allowanceBalance = await governanceToken.allowance(auction.address, relayer.address);
+      const allowanceBalanceBefore = await governanceToken.allowance(auction.address, relayer.address);
 
       await auction.connect(bidder1).commitBid(
         {hNFTId: hNFTId, hNFTContractAddr: hNFT.address},
@@ -284,8 +287,11 @@ describe("Auction", () => {
       expect(beforBalance).to.equal(afterBalance);
 
       const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
-      console.log(`auctionTokenBalance: ${auctionTokenBalance}`);
-      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalance));
+      const allowanceBalanceAfter = await governanceToken.allowance(auction.address, relayer.address);
+
+      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore));
+      expect(allowanceBalanceAfter).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore));
+
     });
 
     it ("should allow users to commitBid", async () => {
@@ -308,7 +314,7 @@ describe("Auction", () => {
       const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
       
       const curBidRemain = 0;
-      const allowanceBalance = await governanceToken.allowance(auction.address, relayer.address);
+      const allowanceBalanceBefore = await governanceToken.allowance(auction.address, relayer.address);
 
       await auction.connect(bidder1).commitBid(
         {hNFTId: hNFTId, hNFTContractAddr: hNFT.address},
@@ -329,7 +335,10 @@ describe("Auction", () => {
       expect(preBidAmountRefund).to.equal(100);
 
       const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
-      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalance));
+      const allowanceBalanceAfter = await governanceToken.allowance(auction.address, relayer.address);
+      
+      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore));
+      expect(allowanceBalanceAfter).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore));
     });
 
     it("should refund the previous bidder when a new bid is submitted", async () => {
@@ -388,7 +397,7 @@ describe("Auction", () => {
       const curBidRemain = 80;
       // payout 20 
       await governanceToken.connect(relayer).transferFrom(auction.address, bidder3.address, 20);
-      const allowanceBalance = await governanceToken.allowance(auction.address, relayer.address);
+      const allowanceBalanceBefore = await governanceToken.allowance(auction.address, relayer.address);
       await auction.connect(bidder2).commitBid(
         {hNFTId: hNFTId, hNFTContractAddr: hNFT.address},
         bidAmount2,
@@ -417,21 +426,25 @@ describe("Auction", () => {
       const bidder2TokenBalance = await governanceToken.balanceOf(bidder2.address);
       expect(bidder2Balance).to.be.equal(120);
       expect(bidder2TokenBalance).to.be.equal(0);
+
       const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
-      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount2 - curBidRemain).add(allowanceBalance));
+      const allowanceBalanceAfter = await governanceToken.allowance(auction.address, relayer.address);
+      
+      expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount2 - curBidRemain).add(allowanceBalanceBefore));
+      expect(allowanceBalanceAfter).to.equal(BigNumber.from(bidAmount2 - curBidRemain).add(allowanceBalanceBefore));
     });
   });
 
   describe("relayer address management", () => {
     it("should allow the owner to get the relayer address", async () => {
-      const getRelayerAddress = await auction.getRelayerAddress();
+      const getRelayerAddress = await auction.connect(owner).getRelayerAddress();
       expect(getRelayerAddress).to.equal(relayer.address);
     });
 
     it("should allow the owner to update the relayer address", async () => {
       const newRelayer = owner;
       await auction.connect(owner).setRelayerAddress(newRelayer.address);
-      const updatedRelayerAddress = await auction.getRelayerAddress();
+      const updatedRelayerAddress = await auction.connect(owner).getRelayerAddress();
       expect(updatedRelayerAddress).to.equal(newRelayer.address);
     });
 
@@ -453,9 +466,19 @@ describe("Auction", () => {
     });
   
     it("should return the correct min deposit for pre-bid", async () => {
-      const returnedMinDeposit = await auction.getMinDepositForPreBid();
+      const returnedMinDeposit = await auction.connect(owner).getMinDepositForPreBid();
   
       expect(returnedMinDeposit).to.equal(10);
+    });
+
+    it("should set new owner", async () => {
+      const minDepositBalanceBefore = await auction.connect(owner).getMinDepositForPreBid();
+      await auction.connect(owner).transferOwnership(bidder1.address);
+      
+      await expect(auction.connect(bidder1).setMinDepositForPreBid(20));
+      const minDepositBalanceAfter = await auction.connect(bidder1).getMinDepositForPreBid();
+      console.log(`minDepositBalanceBefore: ${minDepositBalanceBefore}, minDepositBalanceAfter: ${minDepositBalanceAfter}`)
+      expect(minDepositBalanceAfter).to.equal(BigNumber.from(minDepositBalanceBefore).add(10));
     });
   });
 });

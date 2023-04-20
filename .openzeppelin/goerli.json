@@ -1,8 +1,8 @@
 {
   "manifestVersion": "3.2",
   "admin": {
-    "address": "0xe3B07622152ba3d68dA741286b305a3e2Bf5378B",
-    "txHash": "0xce04c3e2b72173c880898729a0a44ea87ee2130b6ed4b44b420e285241c2f297"
+    "address": "0xE65eCeb0F6E005E761AB212A212e62AAEB5E794e",
+    "txHash": "0x4c956a036569e658cd11c6cb0f2f257690a69105ba97eaadc943efbf4f3618c3"
   },
   "proxies": [
     {
@@ -28,6 +28,16 @@
     {
       "address": "0x6Abc172465AeD91D0B7b1C220454a474C826831F",
       "txHash": "0xe320c4171c2a8b92f7503aab304e2e2ad9050b3b1c90a26d0a647a06873a77c3",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x15B745Bb136f32588e1f3d4BAf8f19843DBc566F",
+      "txHash": "0x89854dd8e325af58baf65451e755150caa016f7a7bdb5fabed6f8e1a968088aa",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x696B394921679d6b0BfcF1AD6d73B3DFADD6152f",
+      "txHash": "0xe4408d4ea9938e07b1bae17118a935344decc41b83949a5faa146f7a5cc4684d",
       "kind": "transparent"
     }
   ],
@@ -1392,6 +1402,218 @@
           "t_mapping(t_uint256,t_bool)": {
             "label": "mapping(uint256 => bool)",
             "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "657c8fd05573164b0788c0b6a4eb8f5c498718335f1a27d69b50ce249fc8e804": {
+      "address": "0x5F21b04d749631Fc0F39C3be4A7503326eeCE994",
+      "txHash": "0xb962dffd674a3821e1b1e196c4c8dbbd28796b355e264912f8636715c387bf9b",
+      "layout": {
+        "solcVersion": "0.8.4",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "relayerAddress",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:34"
+          },
+          {
+            "label": "ad3Address",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:35"
+          },
+          {
+            "label": "hnftGoverAddress",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_address",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:36"
+          },
+          {
+            "label": "curBid",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Bid)1842_storage))",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:37"
+          },
+          {
+            "label": "preBids",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(PreBid)1851_storage))",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:38"
+          },
+          {
+            "label": "MIN_DEPOIST_FOR_PRE_BID",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_uint256",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:40"
+          },
+          {
+            "label": "TIMEOUT",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:41"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Bid)1842_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct Auction.Bid))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(PreBid)1851_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct Auction.PreBid))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Bid)1842_storage)": {
+            "label": "mapping(uint256 => struct Auction.Bid)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(PreBid)1851_storage)": {
+            "label": "mapping(uint256 => struct Auction.PreBid)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Bid)1842_storage": {
+            "label": "struct Auction.Bid",
+            "members": [
+              {
+                "label": "bidId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "bidder",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "slotUri",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(PreBid)1851_storage": {
+            "label": "struct Auction.PreBid",
+            "members": [
+              {
+                "label": "bidId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "bidder",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "preBidTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
           },
           "t_uint256": {
             "label": "uint256",
