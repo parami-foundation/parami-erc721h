@@ -25,6 +25,7 @@ contract EIP5489ForInfluenceMining is
     mapping(uint256 => uint256) public level2Price;
 
     mapping(uint256 => uint256) public token2LinkTargetToken;
+    mapping(address => bool) public kolWhiteList;
 
     function initialize(address _ad3Address) public initializer {
         __ERC721_init("Hyperlink NFT Collection", "HNFT");
@@ -141,6 +142,10 @@ contract EIP5489ForInfluenceMining is
 
         uint256 balance = ad3Contract.balanceOf(msg.sender);
         uint256 priceDiff = targetLevelPrice - fromLevelPrice;
+        if (targetLevel == 1 || kolWhiteList[msg.sender] == true) {
+            priceDiff = 0;
+        }
+
         require(balance > priceDiff, "should have enough ad3");
 
         ad3Contract.transferFrom(msg.sender, address(this), priceDiff);
@@ -152,7 +157,10 @@ contract EIP5489ForInfluenceMining is
         _upgradeTo(tokenId, targetLevel);
     }
 
-    function linkTo(uint256 tokenId, uint256 targetTokenId) public onlyTokenOwner(tokenId) {
+    function linkTo(uint256 tokenId, uint256 targetTokenId)
+        public
+        onlyTokenOwner(tokenId)
+    {
         token2LinkTargetToken[tokenId] = targetTokenId;
     }
 
@@ -176,6 +184,21 @@ contract EIP5489ForInfluenceMining is
 
     function updateAd3Address(address _ad3Address) public onlyOwner {
         ad3Contract = IERC20(_ad3Address);
+    }
+
+    function addToKolWhiteList(address[] calldata kolAddrs) public onlyOwner {
+        for (uint256 i = 0; i < kolAddrs.length; i++) {
+            kolWhiteList[kolAddrs[i]] = true;
+        }
+    }
+
+    function removeFromKolWhiteList(address[] calldata kolAddrs)
+        public
+        onlyOwner
+    {
+        for (uint256 i = 0; i < kolAddrs.length; i++) {
+            kolWhiteList[kolAddrs[i]] = false;
+        }
     }
 
     function tokenURI(uint256 _tokenId)
