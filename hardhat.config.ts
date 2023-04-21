@@ -48,6 +48,8 @@ const config: HardhatUserConfig = {
         accounts:
         process.env.TESTNET_PRIVATE_KEY !== undefined ? [process.env.TESTNET_PRIVATE_KEY] : [],
       },
+      hardhat: {
+      },
   },
   gasReporter: {
     enabled: true,

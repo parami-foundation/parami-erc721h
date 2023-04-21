@@ -50,10 +50,20 @@ contract EIP5489ForInfluenceMining is
         _;
     }
 
+    modifier onlyOwnerOrAuthorized(uint256 tokenId) {
+        require(
+            _msgSender() == ownerOf(tokenId) ||
+                tokenId2AuthorizedAddress[tokenId] == _msgSender() ||
+                getApproved(tokenId) == _msgSender(),
+            "address should be authorized or approve."
+        );
+        _;
+    }
+
     function setSlotUri(uint256 tokenId, string calldata value)
         external
         override
-        onlyTokenOwner(tokenId)
+        onlyOwnerOrAuthorized(tokenId)
     {
         tokenId2Hyperlink[tokenId] = value;
 
@@ -72,7 +82,7 @@ contract EIP5489ForInfluenceMining is
     function authorizeSlotTo(uint256 tokenId, address slotManagerAddr)
         external
         override
-        onlyTokenOwner(tokenId)
+        onlyOwnerOrAuthorized(tokenId)
     {
         if (tokenId2AuthorizedAddress[tokenId] != slotManagerAddr) {
             tokenId2AuthorizedAddress[tokenId] = slotManagerAddr;
@@ -83,7 +93,7 @@ contract EIP5489ForInfluenceMining is
     function revokeAuthorization(uint256 tokenId, address slotManagerAddr)
         public
         override
-        onlyTokenOwner(tokenId)
+        onlyOwnerOrAuthorized(tokenId)
     {
         address authorizedAddress = tokenId2AuthorizedAddress[tokenId];
 
