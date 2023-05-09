@@ -7,7 +7,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
-import "@openzeppelin/hardhat-upgrades"
+import "@openzeppelin/hardhat-upgrades";
 
 dotenv.config();
 
@@ -33,23 +33,32 @@ const config: HardhatUserConfig = {
         runs: 1_000_000,
       },
       metadata: {
-        bytecodeHash: 'none',
+        bytecodeHash: "none",
       },
     },
   },
   networks: {
-      mainnet: {
-        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-        accounts:
-        process.env.MAINNET_PRIVATE_KEY !== undefined ? [process.env.MAINNET_PRIVATE_KEY] : [],
-      },
-      goerli: {
-        url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
-        accounts:
-        process.env.TESTNET_PRIVATE_KEY !== undefined ? [process.env.TESTNET_PRIVATE_KEY] : [],
-      },
-      hardhat: {
-      },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts:
+        process.env.MAINNET_PRIVATE_KEY !== undefined
+          ? [process.env.MAINNET_PRIVATE_KEY]
+          : [],
+    },
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY]
+          : [],
+    },
+    localhost: {
+      url: `http://localhost:8545`,
+      accounts: [
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+      ],
+    },
+    hardhat: {},
   },
   gasReporter: {
     enabled: true,
@@ -63,8 +72,8 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
-    only: [''],
-  }
+    only: [""],
+  },
 };
 
 export default config;
