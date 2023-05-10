@@ -5,14 +5,13 @@
 // Runtime Environment's members available in the global scope.
 import { ethers, upgrades } from "hardhat";
 
-async function deploy() {
-  const factory = await ethers.getContractFactory(
-    "EIP5489ForInfluenceMining"
-  );
-  const instance = await upgrades.deployProxy(factory, ["0xf6b2923717175185a626790FF78B6f37DAbb3565"]);
+export async function deployHNFT(ad3Address: string) {
+  const factory = await ethers.getContractFactory("EIP5489ForInfluenceMining");
+  const instance = await upgrades.deployProxy(factory, [ad3Address]);
   await instance.deployed();
 
   console.log("eip5489 influence mining proxy deployed to", instance.address);
+  return instance;
 }
 
 async function upgrade() {

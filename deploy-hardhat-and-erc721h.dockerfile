@@ -10,10 +10,8 @@ WORKDIR /app/parami-erc721h
 # install hardhat and required dependencies
 RUN npm install
 
-# expose the required ports
-EXPOSE 8545 8546
+COPY ./docker-entrypoint.sh /app/parami-erc721h/docker-entrypoint.sh
+COPY ./scripts /app/parami-erc721h/scripts
+RUN chmod +x /app/parami-erc721h/docker-entrypoint.sh
 
-RUN ls -la
-
-# start the hardhat node
-CMD ["npx", "hardhat", "node"]
+CMD [ "./docker-entrypoint.sh" ]
