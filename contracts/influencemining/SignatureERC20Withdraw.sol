@@ -15,7 +15,7 @@ contract SignatureERC20Withdraw is
     /**
      * @notice erc20 address under withdraw
      */
-    IERC20 public erc20Address;
+    IERC20 public ad3Address;
     /**
      * @notice chainId on which this contract is deployed
      */
@@ -35,7 +35,7 @@ contract SignatureERC20Withdraw is
     ) public initializer {
         __Ownable_init();
         __Pausable_init();
-        erc20Address = IERC20(_erc20Address);
+        ad3Address = IERC20(_erc20Address);
         chainId = _chainId;
         attester = _attester;
     }
@@ -45,13 +45,13 @@ contract SignatureERC20Withdraw is
         uint256 _chainId,
         address _attester
     ) public onlyOwner {
-        erc20Address = IERC20(_erc20Address);
+        ad3Address = IERC20(_erc20Address);
         chainId = _chainId;
         attester = _attester;
     }
 
     function updateInitParams(address _erc20Address, uint256 _chainId) external {
-        erc20Address = IERC20(_erc20Address);
+        ad3Address = IERC20(_erc20Address);
         chainId = _chainId;
     }
 
@@ -82,7 +82,7 @@ contract SignatureERC20Withdraw is
         //TODO(ironman_ch): think over if add address as a part of key
         require(addressNonceUsed[to][nounce] == false, "nounce must not used");
         addressNonceUsed[to][nounce] = true;
-        erc20Address.transfer(to, amount);
+        ad3Address.transfer(to, amount);
         return true;
     }
 }

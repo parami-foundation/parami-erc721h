@@ -34,6 +34,11 @@
       "address": "0xADBd2c28Fc837a47A291Dd28fc45032402E26164",
       "txHash": "0xf7e393446a98dba183ad606a1b888f497159ff01877b2def3f0200c3935bcb73",
       "kind": "transparent"
+    },
+    {
+      "address": "0x715d19366fb1406010adcE72232080eABc167545",
+      "txHash": "0x936b417e016ab376909593934e44a6a83bdf728ddf4fa373b7f9a6ace9664dbf",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -2209,6 +2214,142 @@
               }
             ],
             "numberOfBytes": "128"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "d9b23d4471b9d2b10cf32baef2a30861488b8d41e13e43dc73d3482777ec0fb6": {
+      "address": "0x1F4cCdb0552455118c819C0fB25109194EedD2e1",
+      "txHash": "0xcfb554e7a492cd30b18f20dbc3b8bcdceb8427a16e14b4979f6f84da66507689",
+      "layout": {
+        "solcVersion": "0.8.4",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "_paused",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_bool",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
+          },
+          {
+            "label": "ad3Address",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_contract(IERC20)5102",
+            "contract": "SignatureERC20Withdraw",
+            "src": "contracts/influencemining/SignatureERC20Withdraw.sol:18"
+          },
+          {
+            "label": "chainId",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_uint256",
+            "contract": "SignatureERC20Withdraw",
+            "src": "contracts/influencemining/SignatureERC20Withdraw.sol:22"
+          },
+          {
+            "label": "addressNonceUsed",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_bool))",
+            "contract": "SignatureERC20Withdraw",
+            "src": "contracts/influencemining/SignatureERC20Withdraw.sol:27"
+          },
+          {
+            "label": "attester",
+            "offset": 0,
+            "slot": "154",
+            "type": "t_address",
+            "contract": "SignatureERC20Withdraw",
+            "src": "contracts/influencemining/SignatureERC20Withdraw.sol:29"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IERC20)5102": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_bool))": {
+            "label": "mapping(address => mapping(uint256 => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
           },
           "t_uint256": {
             "label": "uint256",

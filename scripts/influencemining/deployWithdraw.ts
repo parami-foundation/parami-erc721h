@@ -4,7 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers, upgrades } from "hardhat";
-import { SignatureERC20Withdraw } from "../../typechain";
+import hre from "hardhat";
 
 async function deploy() {
   const factory = await ethers.getContractFactory("SignatureERC20Withdraw");
@@ -15,6 +15,7 @@ async function deploy() {
   ]);
   await instance.deployed();
 
+  await hre.run("verify:verify", { address: instance.address });
   console.log("signature withdraw proxy deployed to", instance.address);
 }
 
@@ -22,10 +23,7 @@ async function upgrade() {
   const contractFactory = await ethers.getContractFactory(
     "SignatureERC20Withdraw"
   );
-  const instance = await upgrades.upgradeProxy(
-    "0x1857EDf319E40cD231af46e1b72DA5f9725051aF",
-    contractFactory
-  );
+  const instance = await upgrades.upgradeProxy("", contractFactory);
   await instance.deployed();
 
   console.log("withdraw proxy upgraded to ", instance.address);
@@ -33,7 +31,7 @@ async function upgrade() {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-upgrade().catch((error) => {
+deploy().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
