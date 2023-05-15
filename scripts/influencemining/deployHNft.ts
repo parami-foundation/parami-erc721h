@@ -4,6 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers, upgrades } from "hardhat";
+import hre from "hardhat";
 
 export async function deployHNFT(ad3Address: string) {
   const factory = await ethers.getContractFactory("EIP5489ForInfluenceMining");
@@ -23,6 +24,8 @@ async function upgrade() {
     contractFactory
   );
   await instance.deployed();
+
+  await hre.run("verify:verify", { address: instance.address });
 
   console.log("eip5489 influence minging proxy upgraded to ", instance.address);
 }
