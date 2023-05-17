@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { MockAD3, Auction, EIP5489ForInfluenceMining, HNFTGovernance, AD3} from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
+import { string } from "hardhat/internal/core/params/argumentTypes";
 
 describe("Auction", () => {
   let auction: Auction;
@@ -79,15 +80,14 @@ describe("Auction", () => {
       const beforeAd3Balance = await ad3Token.balanceOf(bidder1.address);
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
-      const receipt = await transaction.wait();
-      const event = receipt.events?.find((e) => e.event === "BidPrepared");
-      const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
-
+      await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(hNFT.address, hNFTId);
       const preBid = await auction.preBids(hNFT.address, 1);
       const currentBid = await auction.curBid(hNFT.address, 1);
-      expect(curBidId).to.equal(currentBid.bidId);
-      expect(preBidId).to.be.equal(preBid.bidId);
+      expect(prePareBidInfo.curBidId).to.equal(currentBid.bidId);
+      expect(prePareBidInfo.bidId).to.be.equal(preBid.bidId);
+
+      console.log(`PrepareBidInfo==========: ${prePareBidInfo.governanceTokenAddr} , ${prePareBidInfo.curBidId}`)
 
       const afterAd3Balance = await ad3Token.balanceOf(bidder1.address);
       expect(afterAd3Balance).to.be.equal(beforeAd3Balance.sub(BigNumber.from(preBidAmount)));
@@ -170,13 +170,11 @@ describe("Auction", () => {
       const errorSignBidAmount = 120;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
-      const transaction = await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
-      const receipt = await transaction.wait();
-      const event = receipt.events?.find((e) => e.event === "BidPrepared");
-      const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
+      await auction.connect(bidder1).preBid(hNFT.address,hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(hNFT.address, hNFTId);
       const messageHash = ethers.utils.solidityKeccak256(
         ["uint256", "address", "address", "uint256", "uint256", "uint256"],
-        [1, hNFT.address, governanceToken.address, errorSignBidAmount, curBidId, preBidId]
+        [1, hNFT.address, governanceToken.address, errorSignBidAmount, prePareBidInfo.curBidId, prePareBidInfo.bidId]
       );
       const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
 
@@ -186,8 +184,8 @@ describe("Auction", () => {
         bidAmount,
         "slot-uri",
         signature,
-        curBidId,
-        preBidId,
+        prePareBidInfo.curBidId,
+        prePareBidInfo.bidId,
         0
       )).to.be.revertedWith("Invalid Signer!");
     });
@@ -481,3 +479,12 @@ describe("Auction", () => {
     });
   });
 });
+
+export interface PrepareBidInfo {
+    bidId : BigNumber;
+    amount: BigNumber;
+    bidder: string;
+    preBidTime: BigNumber;
+    governanceTokenAddr: string;
+    curBidId: BigNumber;
+}

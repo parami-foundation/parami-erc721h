@@ -31,6 +31,15 @@ contract Auction is OwnableUpgradeable {
         address hNFTContractAddr;
     }
 
+    struct PrepareBidInfo {
+        uint256 bidId;
+        uint256 amount;
+        address bidder;
+        uint256 preBidTime;
+        address governanceTokenAddr;
+        uint256 curBidId;
+    }
+
 
     address private relayerAddress;
     address private ad3Address;
@@ -50,7 +59,7 @@ contract Auction is OwnableUpgradeable {
         TIMEOUT = 10 minutes;
     }
 
-    event BidPrepared(address hNFTContractAddr, uint256 indexed curBidId, uint256 indexed preBidId,  address bidder);
+    event BidPrepared(address hNFTContractAddr, uint256 indexed curBidId, uint256 indexed preBidId,  address bidder, address goverAddr);
     event BidCommitted(address hNFTContractAddr, uint256 indexed curBidId, uint256 indexed preBidId, address bidder);
     event BidRefunded(uint256 bidId, uint256 hNFTId, address to, uint256 amount);
 
@@ -69,7 +78,7 @@ contract Auction is OwnableUpgradeable {
         preBids[hNFTContractAddr][hNFTId]= PreBid(preBidId, MIN_DEPOIST_FOR_PRE_BID, _msgSender(), block.timestamp, governanceTokenAddr);
         uint256 curBidId = curBid[hNFTContractAddr][hNFTId].bidId != 0 ? curBid[hNFTContractAddr][hNFTId].bidId : 0;
 
-        emit BidPrepared(hNFTContractAddr ,curBidId, preBidId, _msgSender());
+        emit BidPrepared(hNFTContractAddr ,curBidId, preBidId, _msgSender(), governanceTokenAddr);
     }
 
     function commitBid(
@@ -124,6 +133,20 @@ contract Auction is OwnableUpgradeable {
             genMessageHash(hnftId, hNFTContractAddr, governanceTokenAddress, governanceTokenAmount, curBidId, preBidId)
         );
         return ECDSA.recover(_msgHash, _signature);
+    }
+
+    function getPrepareBidInfo(address hNFTAddr, uint256 hNFTId) public view returns (PrepareBidInfo memory) {
+        PreBid memory preBid = preBids[hNFTAddr][hNFTId];
+        PrepareBidInfo memory params = PrepareBidInfo({
+            bidId: preBid.bidId,
+            amount: preBid.amount,
+            bidder: preBid.bidder,
+            preBidTime: preBid.preBidTime,
+            governanceTokenAddr: preBid.governanceTokenAddr,
+            curBidId: curBid[hNFTAddr][hNFTId].bidId
+        });
+
+        return params;
     }
 
     // --- Private Function ---
