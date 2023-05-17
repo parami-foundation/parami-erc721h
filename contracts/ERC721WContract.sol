@@ -93,7 +93,7 @@ contract ERC721WContract is IERC721H, ERC721Enumerable, ERC721Holder, Ownable {
         }
     }
 
-    function isSlotManager(uint256 tokenId, address addr) public view returns (bool) {
+    function isSlotAuthorized(uint256 tokenId, address addr) public view override returns (bool) {
         return tokenId2AuthorizedAddresses[tokenId].contains(addr);
     }
 

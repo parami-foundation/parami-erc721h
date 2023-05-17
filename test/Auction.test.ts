@@ -19,7 +19,6 @@ describe("Auction", () => {
   beforeEach(async () => {
     [owner, relayer, bidder1, bidder2, bidder3] = await ethers.getSigners();
 
-    const Auction = await ethers.getContractFactory("Auction");
     const MockAD3 = await ethers.getContractFactory("MockAD3");
     const HNFT = await ethers.getContractFactory("EIP5489ForInfluenceMining");
     const Governance = await ethers.getContractFactory("HNFTGovernance");
@@ -50,7 +49,7 @@ describe("Auction", () => {
     await hNFT.deployed();
 
     await hNFT.mint("https://app.parami.io/hnft/ethereum/0x1/1", 0);
-    hNFT.approve(auction.address, 1);
+    hNFT.authorizeSlotTo(1, auction.address);
 
     governance.governWith(hNFT.address, 1, governanceToken.address);
 
@@ -71,7 +70,7 @@ describe("Auction", () => {
 
     it("should successfully prepare a pre-bid even if nftAddress and nftId combination doesn't exist", async () => {
       const nonExistentId = 2;
-      await expect(auction.connect(bidder2).preBid(hNFT.address, nonExistentId)).to.be.revertedWith("ERC721: invalid token ID");
+      await expect(auction.connect(bidder2).preBid(hNFT.address, nonExistentId)).to.be.revertedWith("not slotManager");
     });
     
 

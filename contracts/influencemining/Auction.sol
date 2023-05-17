@@ -23,6 +23,7 @@ contract Auction is OwnableUpgradeable {
         uint256 amount;
         address bidder;
         uint256 preBidTime;
+        address governanceTokenAddr;
     }
 
     struct HNFTInfo {
@@ -56,14 +57,16 @@ contract Auction is OwnableUpgradeable {
     function preBid(address hNFTContractAddr, uint256 hNFTId) public {
         require(hNFTId > 0, "hNFTId must be greater than 0.");
         require(block.timestamp >= preBids[hNFTContractAddr][hNFTId].preBidTime.add(TIMEOUT), "Last preBid still within the valid time");
-        IERC721 hNFTContract = IERC721(hNFTContractAddr);
-        require(hNFTContract.getApproved(hNFTId) == address(this), "hNFTId does not approve");
+        IERC721H hNFTContract = IERC721H(hNFTContractAddr);
+        require(hNFTContract.isSlotAuthorized(hNFTId, address(this)), "not slotManager");
         IERC20 ad3Add = IERC20(ad3Address);
         require(ad3Add.balanceOf(_msgSender()) >= MIN_DEPOIST_FOR_PRE_BID, "AD3 balance not enough");
         require(ad3Add.allowance(_msgSender(), address(this)) >= MIN_DEPOIST_FOR_PRE_BID, "allowance not enough");
         ad3Add.transferFrom(_msgSender(), address(this), MIN_DEPOIST_FOR_PRE_BID);
         uint256 preBidId = _generateRandomNumber();
-        preBids[hNFTContractAddr][hNFTId]= PreBid(preBidId, MIN_DEPOIST_FOR_PRE_BID, _msgSender(), block.timestamp);
+        address governanceTokenAddr = HNFTGovernance(hnftGoverAddress).getGovernanceToken(hNFTContractAddr, hNFTId);
+        governanceTokenAddr = governanceTokenAddr == address(0) ? ad3Address : governanceTokenAddr;
+        preBids[hNFTContractAddr][hNFTId]= PreBid(preBidId, MIN_DEPOIST_FOR_PRE_BID, _msgSender(), block.timestamp, governanceTokenAddr);
         uint256 curBidId = curBid[hNFTContractAddr][hNFTId].bidId != 0 ? curBid[hNFTContractAddr][hNFTId].bidId : 0;
 
         emit BidPrepared(hNFTContractAddr ,curBidId, preBidId, _msgSender());
@@ -83,14 +86,13 @@ contract Auction is OwnableUpgradeable {
         require(hNFTInfo.hNFTContractAddr != address(0), "The hNFT and governance contract can not be address(0).");
         require(curBidId == curBid[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidId, "Invalid curBidId");
         require(preBidId == preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidId, "Invalid preBidId");
-        address governanceTokenAddr = HNFTGovernance(hnftGoverAddress).getGovernanceToken(hNFTInfo.hNFTContractAddr, hNFTInfo.hNFTId);
         IERC721H hNFT = IERC721H(hNFTInfo.hNFTContractAddr);
-        IERC20 token = governanceTokenAddr == address(0) ? IERC20(ad3Address) : IERC20(governanceTokenAddr);
+        IERC20 token = IERC20(preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].governanceTokenAddr);
         require(token.balanceOf(_msgSender()) >= governanceTokenAmount, "balance not enough");
         require(token.allowance(_msgSender(), address(this)) >= governanceTokenAmount, "allowance not enough");
         address _signAddress = recover(hNFTInfo.hNFTId, hNFTInfo.hNFTContractAddr, address(token), governanceTokenAmount, curBidId, preBidId, _signature);
         require(verify(_signAddress), "Invalid Signer!");
-        require(_isAtLeast120Percent(curBid[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].amount, governanceTokenAmount), "The bid is less than 120%");
+        require(_isAtLeast120Percent(curBidRemain, governanceTokenAmount), "The bid is less than 120%");
         require(_msgSender() == preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidder, "Not the preBid owner");
         _processCurBid(token, governanceTokenAmount, hNFT, hNFTInfo.hNFTId, slotUri, curBidRemain);
         _refundPrevBidIfRequired(hNFTInfo.hNFTContractAddr, hNFTInfo.hNFTId, token, curBidRemain);
