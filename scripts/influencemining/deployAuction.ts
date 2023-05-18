@@ -20,7 +20,7 @@ export async function deployAuction(options: {
 }
 
 deployAuction({
-  relayerAddress: "0x971dF9552669c3890AFE88Cb0a068C98a9A60B7C",
+  relayerAddress: "0x9F883b12fD0692714C2f28be6C40d3aFdb9081D3",
   ad3Address: "0xf6b2923717175185a626790FF78B6f37DAbb3565",
   hnftGoverAddress: "0x7c3826180814518C7d7765b1ECE11eDB708a7850",
 }).catch((error) => {
