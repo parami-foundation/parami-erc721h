@@ -60,4 +60,13 @@ interface IERC721H {
         external
         view
         returns (string memory);
+
+    /**
+     * @dev
+     * returns the latest uri of an slot on a token, which is indicated by `tokenId`, `slotManagerAddr`
+     */
+    function isSlotAuthorized(uint256 tokenId, address addr)
+        external
+        view
+        returns (bool);
 }
