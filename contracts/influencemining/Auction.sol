@@ -37,7 +37,7 @@ contract Auction is OwnableUpgradeable {
         address bidder;
         uint256 preBidTime;
         address governanceTokenAddr;
-        uint256 curBidId;
+        uint256 newBidId;
     }
 
 
@@ -143,7 +143,7 @@ contract Auction is OwnableUpgradeable {
             bidder: preBid.bidder,
             preBidTime: preBid.preBidTime,
             governanceTokenAddr: preBid.governanceTokenAddr,
-            curBidId: curBid[hNFTAddr][hNFTId].bidId
+            newBidId: curBid[hNFTAddr][hNFTId].bidId
         });
 
         return params;
