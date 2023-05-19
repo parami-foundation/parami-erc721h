@@ -65,12 +65,11 @@ describe("Auction", () => {
       await expect(auction.connect(bidder2).preBid(hNFT.address, hNFTId)).to.be.revertedWith("allowance not enough");
     });
     
-
-    it("should successfully prepare a pre-bid even if nftAddress and nftId combination doesn't exist", async () => {
+    it("should fail prepare a pre-bid even if nftAddress and nftId combination doesn't exist", async () => {
       const nonExistentId = 2;
-      await expect(auction.connect(bidder2).preBid(hNFT.address, nonExistentId)).to.be.revertedWith("not slotManager");
+      ad3Token.connect(bidder2).approve(auction.address, 10);
+      await expect(auction.connect(bidder2).preBid(hNFT.address, nonExistentId)).to.be.revertedWith("not slotManager or hnftId not exist");
     });
-    
 
     it("should allow users to preBid with added governanceToken", async () => {
       governance.governWith(hNFT.address, 1, governanceToken.address);
@@ -84,7 +83,7 @@ describe("Auction", () => {
       const preBid = await auction.preBids(hNFT.address, 1);
       const currentBid = await auction.curBid(hNFT.address, 1);
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
-      expect(prePareBidInfo.newBidId).to.equal(currentBid.bidId);
+      expect(prePareBidInfo.curBidId).to.equal(currentBid.bidId);
       expect(prePareBidInfo.bidId).to.be.equal(preBid.bidId);
       expect(prePareBidInfo.governanceTokenAddr).to.be.equal(governanceTokenAddr);
       const afterAd3Balance = await ad3Token.balanceOf(bidder1.address);
@@ -99,7 +98,7 @@ describe("Auction", () => {
       const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(hNFT.address, hNFTId);
       const preBid = await auction.preBids(hNFT.address, 1);
       const currentBid = await auction.curBid(hNFT.address, 1);
-      expect(prePareBidInfo.newBidId).to.equal(currentBid.bidId);
+      expect(prePareBidInfo.curBidId).to.equal(currentBid.bidId);
       expect(prePareBidInfo.bidId).to.be.equal(preBid.bidId);
       expect(prePareBidInfo.governanceTokenAddr).to.be.equal(ad3Token.address);
 
@@ -130,7 +129,7 @@ describe("Auction", () => {
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(hNFT.address, hNFTId);
-      expect(prePareBidInfo.newBidId).to.equal(0);
+      expect(prePareBidInfo.curBidId).to.equal(0);
       expect(prePareBidInfo.bidId).to.be.gt(0);
 
       await ethers.provider.send("evm_increaseTime", [11 * 60]);
@@ -190,7 +189,7 @@ describe("Auction", () => {
       const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(hNFT.address, hNFTId);
       const messageHash = ethers.utils.solidityKeccak256(
         ["uint256", "address", "address", "uint256", "uint256", "uint256"],
-        [1, hNFT.address, governanceToken.address, errorSignBidAmount, prePareBidInfo.newBidId, prePareBidInfo.bidId]
+        [1, hNFT.address, governanceToken.address, errorSignBidAmount, prePareBidInfo.curBidId, prePareBidInfo.bidId]
       );
       const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
 
@@ -200,7 +199,7 @@ describe("Auction", () => {
         bidAmount,
         "slot-uri",
         signature,
-        prePareBidInfo.newBidId,
+        prePareBidInfo.curBidId,
         prePareBidInfo.bidId,
         0
       )).to.be.revertedWith("Invalid Signer!");
@@ -327,7 +326,7 @@ describe("Auction", () => {
       await governanceToken.connect(bidder1).approve(auction.address, bidAmount);
       const messageHash = ethers.utils.solidityKeccak256(
         ["uint256", "address", "address", "uint256", "uint256", "uint256"],
-        [1, hNFT.address, governanceToken.address, bidAmount, prePareBidInfo.newBidId, prePareBidInfo.bidId]
+        [1, hNFT.address, governanceToken.address, bidAmount, prePareBidInfo.curBidId, prePareBidInfo.bidId]
       );
       
       const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
@@ -340,7 +339,7 @@ describe("Auction", () => {
         bidAmount,
         "slot-uri",
         signature,
-        prePareBidInfo.newBidId,
+        prePareBidInfo.curBidId,
         prePareBidInfo.bidId,
         curBidRemain
       );
@@ -558,5 +557,5 @@ export interface PrepareBidInfo {
     bidder: string;
     preBidTime: BigNumber;
     governanceTokenAddr: string;
-    newBidId: BigNumber;
+    curBidId: BigNumber;
 }
