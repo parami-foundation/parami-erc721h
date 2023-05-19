@@ -16,6 +16,7 @@ contract Auction is OwnableUpgradeable {
         uint256 amount;
         address bidder;
         string  slotUri;
+        address governanceTokenAddr;
     }
 
     struct PreBid {
@@ -67,7 +68,7 @@ contract Auction is OwnableUpgradeable {
         require(hNFTId > 0, "hNFTId must be greater than 0.");
         require(block.timestamp >= preBids[hNFTContractAddr][hNFTId].preBidTime.add(TIMEOUT), "Last preBid still within the valid time");
         IERC721H hNFTContract = IERC721H(hNFTContractAddr);
-        require(hNFTContract.isSlotAuthorized(hNFTId, address(this)), "not slotManager");
+        require(hNFTContract.isSlotAuthorized(hNFTId, address(this)), "not slotManager or hnftId not exist");
         IERC20 ad3Add = IERC20(ad3Address);
         require(ad3Add.balanceOf(_msgSender()) >= MIN_DEPOIST_FOR_PRE_BID, "AD3 balance not enough");
         require(ad3Add.allowance(_msgSender(), address(this)) >= MIN_DEPOIST_FOR_PRE_BID, "allowance not enough");
@@ -95,7 +96,6 @@ contract Auction is OwnableUpgradeable {
         require(hNFTInfo.hNFTContractAddr != address(0), "The hNFT and governance contract can not be address(0).");
         require(curBidId == curBid[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidId, "Invalid curBidId");
         require(preBidId == preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidId, "Invalid preBidId");
-        IERC721H hNFT = IERC721H(hNFTInfo.hNFTContractAddr);
         IERC20 token = IERC20(preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].governanceTokenAddr);
         require(token.balanceOf(_msgSender()) >= governanceTokenAmount, "balance not enough");
         require(token.allowance(_msgSender(), address(this)) >= governanceTokenAmount, "allowance not enough");
@@ -103,10 +103,10 @@ contract Auction is OwnableUpgradeable {
         require(verify(_signAddress), "Invalid Signer!");
         require(_isAtLeast120Percent(curBidRemain, governanceTokenAmount), "The bid is less than 120%");
         require(_msgSender() == preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidder, "Not the preBid owner");
-        _processCurBid(token, governanceTokenAmount, hNFT, hNFTInfo.hNFTId, slotUri, curBidRemain);
-        _refundPrevBidIfRequired(hNFTInfo.hNFTContractAddr, hNFTInfo.hNFTId, token, curBidRemain);
+
+        _refundPrevBidIfRequired(hNFTInfo.hNFTContractAddr, hNFTInfo.hNFTId, curBidRemain);
+        _processCurBid(token, governanceTokenAmount, hNFTInfo.hNFTContractAddr, hNFTInfo.hNFTId, slotUri, curBidRemain, preBidId);
         
-        curBid[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId] = Bid(preBidId, governanceTokenAmount, _msgSender(), slotUri);
         emit BidCommitted(hNFTInfo.hNFTContractAddr, curBidId, preBidId, _msgSender());
     }
 
@@ -152,24 +152,27 @@ contract Auction is OwnableUpgradeable {
     // --- Private Function ---
     function _processCurBid(
         IERC20 token, uint256 governanceTokenAmount, 
-        IERC721H hNft, uint256 hNFTId, 
-        string memory slotUri, uint256 curBidRemain
+        address hNftAddr, uint256 hNFTId, 
+        string memory slotUri, uint256 curBidRemain,
+        uint256 preBidId
     ) private {
+        IERC20 ad3Addr = IERC20(ad3Address);
+        uint256 preAmount = preBids[hNftAddr][hNFTId].amount;
+        delete preBids[hNftAddr][hNFTId];
+        ad3Addr.transfer(_msgSender(), preAmount);
+
         token.transferFrom(_msgSender(), address(this), governanceTokenAmount);
         uint256 amount = governanceTokenAmount.sub(curBidRemain);
         token.approve(relayerAddress, amount.add(token.allowance(address(this), relayerAddress)));
-        hNft.setSlotUri(hNFTId, slotUri);
+        IERC721H(hNftAddr).setSlotUri(hNFTId, slotUri);
+
+        curBid[hNftAddr][hNFTId] = Bid(preBidId, governanceTokenAmount, _msgSender(), slotUri, address(token));
     }
 
-    function _refundPrevBidIfRequired(address hNFTContractAddr, uint256 hNFTId, IERC20 token, uint256 curBidRemain) private {
-        IERC20 ad3Addr = IERC20(ad3Address);
-        uint256 preAmount = preBids[hNFTContractAddr][hNFTId].amount;
-        delete preBids[hNFTContractAddr][hNFTId];
-        ad3Addr.transfer(_msgSender(), preAmount);
-
+    function _refundPrevBidIfRequired(address hNFTContractAddr, uint256 hNFTId, uint256 curBidRemain) private {
         if(curBid[hNFTContractAddr][hNFTId].amount > 0) {
             Bid memory currentBid = curBid[hNFTContractAddr][hNFTId];
-            token.transfer(currentBid.bidder, curBidRemain);
+            IERC20(curBid[hNFTContractAddr][hNFTId].governanceTokenAddr).transfer(currentBid.bidder, curBidRemain);
 
             emit BidRefunded(currentBid.bidId, hNFTId, currentBid.bidder, currentBid.amount);
         }
