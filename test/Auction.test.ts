@@ -366,23 +366,23 @@ describe("Auction", () => {
       const hNFTId = 1;
       const bidAmount = 10;
       const preBidAmount = 10;
-      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount + bidAmount);
 
       const transaction = await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
       const receipt = await transaction.wait();
       const event = receipt.events?.find((e) => e.event === "BidPrepared");
       const [curBidId, preBidId] = [event!.args!.curBidId, event!.args!.preBidId];
 
-      await governanceToken.connect(bidder1).approve(auction.address, bidAmount);
       const messageHash = ethers.utils.solidityKeccak256(
         ["uint256", "address", "address", "uint256", "uint256", "uint256"],
-        [1, hNFT.address, governanceToken.address, bidAmount, curBidId, preBidId]
+        [1, hNFT.address, ad3Token.address, bidAmount, curBidId, preBidId]
       );
       
       const signature = await relayer.signMessage(ethers.utils.arrayify(messageHash));
       
       const curBidRemain = 0;
-      const allowanceBalanceBefore = await governanceToken.allowance(auction.address, relayer.address);
+      const allowanceBalanceBefore = await ad3Token.allowance(auction.address, relayer.address);
+      console.log(`allowanceBalanceBefore... ${allowanceBalanceBefore}`);
 
       await auction.connect(bidder1).commitBid(
         {hNFTId: hNFTId, hNFTContractAddr: hNFT.address},
@@ -400,10 +400,11 @@ describe("Auction", () => {
       expect(currentBid.bidder).to.equal(bidder1.address);
       
       const preBidAmountRefund = await ad3Token.balanceOf(bidder1.address);
-      expect(preBidAmountRefund).to.equal(100);
+      expect(preBidAmountRefund).to.equal(90);
 
-      const auctionTokenBalance = await governanceToken.balanceOf(auction.address);
-      const allowanceBalanceAfter = await governanceToken.allowance(auction.address, relayer.address);
+      const auctionTokenBalance = await ad3Token.balanceOf(auction.address);
+      console.log(`auctionTokenBalance... ${auctionTokenBalance}`);
+      const allowanceBalanceAfter = await ad3Token.allowance(auction.address, relayer.address);
       
       expect(auctionTokenBalance).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore));
       expect(allowanceBalanceAfter).to.equal(BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore));
