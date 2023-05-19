@@ -44,6 +44,11 @@
       "address": "0xb58Af4d568c200B3f18A5178783922d6eB1Ef13b",
       "txHash": "0x750aa81c4bfc0a5f289767095b486146ae47314c2528eaf9630026d3a4e597b1",
       "kind": "transparent"
+    },
+    {
+      "address": "0x6023cF66B0AD3e79D942c2a66B368C921632D1c2",
+      "txHash": "0x56c9931e3459178e87894988d59ec7a7dcb7979f08df36188bd95014c5a07c6c",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -3173,6 +3178,230 @@
           "t_string_storage": {
             "label": "string",
             "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "429aaaa8719c831ea08517b32bdd6585960533e3ac802bc524a8ea3f2c4a010c": {
+      "address": "0xc29E76c0098F9Edbe47fA6Bdf2Bd5FD6e87094fE",
+      "txHash": "0x94a82e2f20b45fd9986cb25c13633e6ab84da9407d72b0cb0f7027059e1c0050",
+      "layout": {
+        "solcVersion": "0.8.4",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "relayerAddress",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:45"
+          },
+          {
+            "label": "ad3Address",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:46"
+          },
+          {
+            "label": "hnftGoverAddress",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_address",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:47"
+          },
+          {
+            "label": "curBid",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Bid)10824_storage))",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:48"
+          },
+          {
+            "label": "preBids",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(PreBid)10835_storage))",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:49"
+          },
+          {
+            "label": "MIN_DEPOIST_FOR_PRE_BID",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_uint256",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:51"
+          },
+          {
+            "label": "TIMEOUT",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "Auction",
+            "src": "contracts/influencemining/Auction.sol:52"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Bid)10824_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct Auction.Bid))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(PreBid)10835_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct Auction.PreBid))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Bid)10824_storage)": {
+            "label": "mapping(uint256 => struct Auction.Bid)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(PreBid)10835_storage)": {
+            "label": "mapping(uint256 => struct Auction.PreBid)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Bid)10824_storage": {
+            "label": "struct Auction.Bid",
+            "members": [
+              {
+                "label": "bidId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "bidder",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "slotUri",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "governanceTokenAddr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(PreBid)10835_storage": {
+            "label": "struct Auction.PreBid",
+            "members": [
+              {
+                "label": "bidId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "bidder",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "preBidTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "governanceTokenAddr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
           },
           "t_uint256": {
             "label": "uint256",
