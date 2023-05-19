@@ -51,7 +51,6 @@ describe("Auction", () => {
 
     await hNFT.mint("https://app.parami.io/hnft/ethereum/0x1/1", 0);
     hNFT.authorizeSlotTo(1, auction.address);
-
   });
 
   describe("preBid", () => {
@@ -88,7 +87,6 @@ describe("Auction", () => {
       expect(prePareBidInfo.newBidId).to.equal(currentBid.bidId);
       expect(prePareBidInfo.bidId).to.be.equal(preBid.bidId);
       expect(prePareBidInfo.governanceTokenAddr).to.be.equal(governanceTokenAddr);
-
       const afterAd3Balance = await ad3Token.balanceOf(bidder1.address);
       expect(afterAd3Balance).to.be.equal(beforeAd3Balance.sub(BigNumber.from(preBidAmount)));
     });
