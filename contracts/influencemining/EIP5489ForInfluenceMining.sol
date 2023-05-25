@@ -137,7 +137,7 @@ contract EIP5489ForInfluenceMining is
             priceDiff = 0;
         }
 
-        require(balance > priceDiff, "should have enough ad3");
+        require(balance >= priceDiff, "should have enough ad3");
 
         ad3Contract.transferFrom(msg.sender, address(this), priceDiff);
         token2Level[tokenId] = targetLevel;
