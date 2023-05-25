@@ -89,7 +89,6 @@ describe("SignatureERC20Withdraw", () => {
       //verify
       //3. error
       await expect(res).to.be.rejected.then((e) => {
-        console.log(e.message);
         expect(e.message).contains("LERC20: transfer amount exceeds balance");
       });
 

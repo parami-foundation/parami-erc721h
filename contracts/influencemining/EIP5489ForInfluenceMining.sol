@@ -133,7 +133,7 @@ contract EIP5489ForInfluenceMining is
 
         uint256 balance = ad3Contract.balanceOf(msg.sender);
         uint256 priceDiff = targetLevelPrice - fromLevelPrice;
-        if (targetLevel == 1 || kolWhiteList[msg.sender] == true) {
+        if (targetLevel == 1 && kolWhiteList[msg.sender] == true) {
             priceDiff = 0;
         }
 

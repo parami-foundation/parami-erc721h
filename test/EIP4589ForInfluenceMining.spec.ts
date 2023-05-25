@@ -80,7 +80,6 @@ describe("UpgradeLevel", function () {
 
     //verify
     await expect(res).to.be.rejected.then((e) => {
-      console.log(e.message);
       expect(e.message).contains("targetLevel should G.T. fromLevel");
     });
   });
@@ -97,7 +96,6 @@ describe("UpgradeLevel", function () {
 
     //verify
     await expect(res).to.be.rejected.then((e) => {
-      console.log(e.message);
       expect(e.message).contains("targetLevel should G.T. fromLevel");
     });
   });
@@ -113,7 +111,6 @@ describe("UpgradeLevel", function () {
 
     //verify
     await expect(res).to.be.rejected.then((e) => {
-      console.log(e.message);
       expect(e.message).contains("targetLevel should exist");
     });
   });
@@ -132,7 +129,6 @@ describe("UpgradeLevel", function () {
     await expect(
       imContract.connect(signer_with_no_ad3).upgradeTo(tokenId, targetLevel)
     ).to.be.rejected.then((e) => {
-      console.log(e.message);
       expect(e.message as string).contains("should have enough ad3");
     });
   });
@@ -144,21 +140,18 @@ describe("UpgradeLevel", function () {
         [1, 2, 3],
         [1n * 10n ** 18n, 2n * 10n ** 18n, 3n * 10n ** 18n]
       );
-    console.log("finish manageLevelPrices");
     await ad3Contract
       .connect(owner)
       .approve(imContract.address, 20n * 10n ** 18n);
-    console.log("finish approve");
 
     let res = imContract.upgradeTo(1, 3);
     await expect(res).to.be.rejected.then((e) => {
-      console.log(e.message);
       expect(e.message).contains("ERC721: invalid token ID");
     });
   });
   it("Should not upgradeLevel when approve ad3 is not enough", async () => {});
 
-  it("Upgrade token with targetLevel == 1", async () => {
+  it("Should upgrade token when targetLevel == 1", async () => {
     const targetLevel = 1;
     const tokenId = 1;
     await prepareContext(owner, { tokenId, fromLevel: 0 });
@@ -171,7 +164,38 @@ describe("UpgradeLevel", function () {
     // Check if the price difference is set to 0 (implicitly by the test not reverting with "should have enough ad3")
   });
 
-  it("Upgrade token when sender is in kolWhiteList and signer has enough AD3", async () => {
+  it("Should upgradeLevel when signer is not in kolWhiteList and signer has no enough AD3", async () => {
+    await prepareContext(signer_with_enough_ad3, { mintToken: true });
+
+    // Set the sender's balance to cover the price difference between levels
+
+    const priceOfLevel1 = await imContract.level2Price(1);
+    await ad3Contract
+      .connect(owner)
+      .transfer(
+        signer_with_enough_ad3.address,
+        priceOfLevel1.sub(BigNumber.from(1n * 10n ** 18n))
+      );
+
+    //action
+    // Call upgradeTo function with tokenId and a higher targetLevel
+    const initialBalance = await ad3Contract.balanceOf(
+      signer_with_enough_ad3.address
+    );
+    await expect(
+      imContract.connect(signer_with_enough_ad3).upgradeTo(1, 1)
+    ).to.be.rejected.then((e) => {
+      expect(e.message).to.contains("should have enough ad3");
+    });
+
+    // Check if the price difference is set to 0 by confirming the balance has not changed
+    const finalBalance = await ad3Contract.balanceOf(
+      signer_with_enough_ad3.address
+    );
+    expect(initialBalance).to.equal(finalBalance);
+  });
+
+  it("Should upgrade token when signer is in kolWhiteList and signer has enough AD3", async () => {
     // Add the sender to kolWhiteList
     await imContract
       .connect(owner)
@@ -247,7 +271,6 @@ describe("mint", function () {
     //action
     const res = imContract.connect(owner).mint("http://123", targetLevel);
     await expect(res).to.be.rejected.then((e) => {
-      console.log(e.message);
       expect(e.message).contains("value out-of-bounds");
     });
   });
@@ -258,7 +281,6 @@ describe("mint", function () {
     //action
     const res = imContract.connect(owner).mint("http://123", targetLevel);
     await expect(res).to.be.rejected.then((e) => {
-      console.log(e.message);
       expect(e.message).contains("targetLevel should exist");
     });
   });
@@ -404,27 +426,20 @@ async function prepareContext(
       [1, 2, 3],
       [1n * 10n ** 18n, 2n * 10n ** 18n, 3n * 10n ** 18n]
     );
-  console.log("finish manageLevelPrices");
   await ad3Contract
     .connect(signer)
     .approve(imContract.address, 20n * 10n ** 18n);
-  console.log("finish approve");
   if (!context) {
-    console.log("finish prepareToken");
     return;
   }
   if (!!context.mintToken) {
     await imContract.connect(signer).mint(iconUri, 0);
-    console.log("finish mint");
   }
   if (!!context.fromLevel) {
-    console.log("fromLevel", context.fromLevel);
     await imContract
       .connect(signer)
       .upgradeTo(context!.tokenId!, context.fromLevel);
-    console.log("finish upgradeTo");
   }
-  console.log("finish prepareToken");
 }
 
 async function _beforeEach() {
@@ -441,7 +456,6 @@ async function _beforeEach() {
   await imContract.deployed();
 
   const balanceOfOwner = await ad3Contract.balanceOf(owner.address);
-  console.log("balanceOfOwner is ", balanceOfOwner);
   // await ad3Contract
   //   .connect(owner)
   //   .transfer(signer_with_enough_ad3.address, 1000 * 10 ** 18);
