@@ -297,8 +297,8 @@ describe("withdrawAllAd3", () => {
 
 describe("kolWhiteListManagement", () => {
   let nonOwner: Signer;
-  let addr1: Signer;
-  let addr2: Signer;
+  let addr1: SignerWithAddress;
+  let addr2: SignerWithAddress;
 
   beforeEach(async function () {
     await _beforeEach();
@@ -375,6 +375,34 @@ describe("kolWhiteListManagement", () => {
     await expect(
       imContract.connect(nonOwner).removeFromKolWhiteList(addrArray)
     ).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  it("whitelist user can free mint level 2 token", async () => {
+    //prepare
+    await prepareContext(owner);
+    await imContract.connect(owner).addToKolWhiteList([await addr1.getAddress()]);
+    await imContract.connect(addr1).mint('', 1);
+    const after = await getStatToCompare(addr1, 1);
+
+    expect(after.userBalance).to.be.eq(0);
+    expect(after.contractBalance).to.be.eq(0);
+    expect(after.level).to.be.eq(1);
+  });
+  
+  it("whitelist user can free upgrade level 2 token", async () => {
+    //prepare
+    await prepareContext(owner);
+    await imContract.connect(owner).addToKolWhiteList([await addr1.getAddress()]);
+    await imContract.connect(addr1).mint('', 0);
+    const afterMint = await getStatToCompare(addr1, 1);
+
+    expect(afterMint.level).to.be.eq(0);
+
+    await imContract.connect(addr1).upgradeTo(1, 1);
+    const afterUpgrade = await getStatToCompare(addr1, 1);
+    expect(afterUpgrade.userBalance).to.be.eq(0);
+    expect(afterUpgrade.contractBalance).to.be.eq(0);
+    expect(afterUpgrade.level).to.be.eq(1);
   });
 });
 
