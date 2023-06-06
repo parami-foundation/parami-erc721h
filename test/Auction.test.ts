@@ -49,24 +49,11 @@ describe("Auction", () => {
     ])) as Auction;
     await auction.deployed();
 
-    // governanceToken = await MockAD3.deploy();
-    // await governanceToken.deployed();
-    // await governanceToken.mint(1000);
-    // await governanceToken.transfer(bidder1.address, 100);
-    // await governanceToken.transfer(bidder2.address, 120);
-
     hNFT = await HNFT.deploy();
     await hNFT.deployed();
 
     await hNFT.mint("https://app.parami.io/hnft/ethereum/0x1/1", 0);
     hNFT.authorizeSlotTo(1, auction.address);
-
-    // governance.issueGovernanceToken(hNFT.address, 1, "Mock GT", "MGT");
-
-    // const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
-
-    // governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
-  
 
   });
 
@@ -250,10 +237,11 @@ describe("Auction", () => {
     });
 
     it("Should fail when signature content and input parameters or relayerAddr do not match", async function () {
-      // //issue governance token first
-      // governance.issueGovernanceToken(hNFT.address, 1, "Mock GT", "MGT");
-      // const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
-      // governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
 
       const preBidAmount = 10;
       const bidAmount = 90;
@@ -280,7 +268,7 @@ describe("Auction", () => {
         ethers.utils.arrayify(messageHash)
       );
 
-      await ad3Token
+      await governanceToken
         .connect(bidder1)
         .approve(auction.address, bidAmount);
       await expect(
@@ -299,7 +287,12 @@ describe("Auction", () => {
     });
 
     it("Should fail when signer is not the relayerAddr", async function () {
-      // governance.governWith(hNFT.address, 1, governanceToken.address);
+
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
 
       const preBidAmount = 10;
       const bidAmount =90;
@@ -330,7 +323,7 @@ describe("Auction", () => {
         ethers.utils.arrayify(messageHash)
       );
 
-      await ad3Token
+      await governanceToken
         .connect(bidder1)
         .approve(auction.address, bidAmount);
       await expect(
@@ -349,7 +342,12 @@ describe("Auction", () => {
     });
 
     it("Should fail when signature does not exist", async function () {
-      // governance.governWith(hNFT.address, 1, governanceToken.address);
+
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
 
       const bidAmount = 90;
       const preBidAmount = 10;
@@ -376,7 +374,7 @@ describe("Auction", () => {
         ]
       );
 
-      await ad3Token
+      await governanceToken
         .connect(bidder1)
         .approve(auction.address, bidAmount);
       await expect(
@@ -422,7 +420,7 @@ describe("Auction", () => {
       await ethers.provider.send("evm_increaseTime", [11 * 60]);
       await ethers.provider.send("evm_mine", []);
 
-      await ad3Token
+      await governanceToken
         .connect(bidder1)
         .approve(auction.address, bidAmount);
       const messageHash = ethers.utils.solidityKeccak256(
@@ -430,7 +428,7 @@ describe("Auction", () => {
         [
           1,
           hNFT.address,
-          ad3Token.address,
+          governanceToken.address,
           bidAmount,
           curBidId,
           preBidId,
@@ -734,7 +732,7 @@ describe("Auction", () => {
         event1!.args!.preBidId,
       ];
 
-      await ad3Token
+      await governanceToken
         .connect(bidder1)
         .approve(auction.address, bidAmount1);
       const messageHash1 = ethers.utils.solidityKeccak256(
@@ -753,8 +751,6 @@ describe("Auction", () => {
         ethers.utils.arrayify(messageHash1)
       );
 
-      
-
       await auction
         .connect(bidder1)
         .commitBid(
@@ -767,7 +763,7 @@ describe("Auction", () => {
           0
         );
 
-      const approveAmount = await ad3Token.allowance(
+      const approveAmount = await governanceToken.allowance(
         auction.address,
         relayer.address
       );

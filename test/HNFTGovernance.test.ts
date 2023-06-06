@@ -39,7 +39,7 @@ describe("HNFTGovernance", () => {
 
     const address = await hnftGovernance.getGovernanceToken(hnftContract.address, tokenId);
     
-    expect(address).to.not.equal("0x0000000000000000000000000000000000000000");
+    expect(address).to.equal(await hnftGovernance.connect(owner).getGovernanceToken(hnftContract.address, tokenId));
   
   });
 
@@ -53,9 +53,9 @@ describe("HNFTGovernance", () => {
   it("should emit event when NFT is issued", async () => {
     const tokenId = 1;
 
-    // await expect(hnftGovernance.connect(owner).issueGovernanceToken(hnftContract.address, tokenId, "MGB", "MGB"))
-    //   .to.emit(hnftGovernance, "Governance")
-    //   .withArgs(tokenId, "");
+    await expect(hnftGovernance.connect(owner).issueGovernanceToken(hnftContract.address, tokenId, "MGB", "MGB"))
+      .to.emit(hnftGovernance, "Governance")
+      .withArgs(tokenId, await hnftGovernance.connect(owner).getGovernanceToken(hnftContract.address, tokenId));
   });
   
 });
