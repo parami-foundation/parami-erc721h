@@ -312,7 +312,7 @@ describe("Auction", () => {
         [
           1,
           hNFT.address,
-          ad3Token.address,
+          governanceToken.address,
           bidAmount,
           curBidId,
           preBidId,
@@ -367,7 +367,7 @@ describe("Auction", () => {
         [
           1,
           hNFT.address,
-          ad3Token.address,
+          governanceToken.address,
           bidAmount,
           curBidId,
           preBidId,
@@ -740,7 +740,7 @@ describe("Auction", () => {
         [
           1,
           hNFT.address,
-          ad3Token.address,
+          governanceToken.address,
           bidAmount1,
           curBidId1,
           preBidId1,
