@@ -21,11 +21,11 @@ contract HNFTGovernance is Ownable {
         IERC721 nftAddress = IERC721(hnftAddress);
         require(
             nftAddress.ownerOf(nftId) == msg.sender,
-            "Only the NFT owner can governed"
+            "Only the NFT owner can issue governance token"
         );
         require(
             hnft2tokenId2GovernanceToken[hnftAddress][nftId] == address(0),
-            "NFT has become governed"
+            "NFT already has governance token"
         );
 
         HNFTGovernanceToken goverenceToken = new HNFTGovernanceToken(
