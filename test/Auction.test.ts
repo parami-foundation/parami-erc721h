@@ -128,7 +128,6 @@ describe("Auction", () => {
 
     it("Should fail when a new preBid while previous preBid hasn't been committed yet", async () => {
       const hNFTId = 1;
-      // governance.governWith(hNFT.address, 1, governanceToken.address);
 
       await ad3Token.connect(bidder1).approve(auction.address, 10);
       const transaction1 = await auction
@@ -150,7 +149,6 @@ describe("Auction", () => {
     });
 
     it("Should allow a new preBid while previous preBid hasn't been committed yet and preBid timeout ", async () => {
-      // governance.governWith(hNFT.address, 1, governanceToken.address);
 
       const hNFTId = 1;
       const preBidAmount = 10;
@@ -393,8 +391,7 @@ describe("Auction", () => {
     });
 
     it("Should success when preBid has already timed out", async () => {
-      // governance.governWith(hNFT.address, 1, governanceToken.address);
-
+   
       governance.setDefaultGovernanceToken(ad3Token.address);
 
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
