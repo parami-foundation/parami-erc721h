@@ -5,6 +5,7 @@ import {
   Auction,
   EIP5489ForInfluenceMining,
   HNFTGovernance,
+  HNFTGovernanceToken,
   AD3,
 } from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -15,7 +16,7 @@ describe("Auction", () => {
   let auction: Auction;
   let hNFT: EIP5489ForInfluenceMining;
   let ad3Token: MockAD3;
-  let governanceToken: MockAD3;
+  let governanceToken: HNFTGovernanceToken;
   let governance: HNFTGovernance;
   let relayer: SignerWithAddress;
   let owner: SignerWithAddress;
@@ -48,17 +49,12 @@ describe("Auction", () => {
     ])) as Auction;
     await auction.deployed();
 
-    governanceToken = await MockAD3.deploy();
-    await governanceToken.deployed();
-    await governanceToken.mint(1000);
-    await governanceToken.transfer(bidder1.address, 100);
-    await governanceToken.transfer(bidder2.address, 120);
-
     hNFT = await HNFT.deploy();
     await hNFT.deployed();
 
     await hNFT.mint("https://app.parami.io/hnft/ethereum/0x1/1", 0);
     hNFT.authorizeSlotTo(1, auction.address);
+
   });
 
   describe("preBid", () => {
@@ -85,8 +81,9 @@ describe("Auction", () => {
     });
 
     it("should allow users to preBid with added governanceToken", async () => {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
-
+      
+      //issue governance token first
+      governance.issueGovernanceToken(hNFT.address, 1, "Mock GT", "MGT");
       const preBidAmount = 10;
       const beforeAd3Balance = await ad3Token.balanceOf(bidder1.address);
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
@@ -131,7 +128,6 @@ describe("Auction", () => {
 
     it("Should fail when a new preBid while previous preBid hasn't been committed yet", async () => {
       const hNFTId = 1;
-      governance.governWith(hNFT.address, 1, governanceToken.address);
 
       await ad3Token.connect(bidder1).approve(auction.address, 10);
       const transaction1 = await auction
@@ -153,7 +149,6 @@ describe("Auction", () => {
     });
 
     it("Should allow a new preBid while previous preBid hasn't been committed yet and preBid timeout ", async () => {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
 
       const hNFTId = 1;
       const preBidAmount = 10;
@@ -188,8 +183,10 @@ describe("Auction", () => {
 
   describe("commitBid", () => {
     it("Should fail when commitBid has a non-existent bidId", async function () {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
-
+      //issue governance token first
+      governance.issueGovernanceToken(hNFT.address, 1, "Mock GT", "MGT");
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
       const preBidAmount = 10;
       const bidAmount = 100;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
@@ -238,10 +235,14 @@ describe("Auction", () => {
     });
 
     it("Should fail when signature content and input parameters or relayerAddr do not match", async function () {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
 
       const preBidAmount = 10;
-      const bidAmount = 100;
+      const bidAmount = 90;
       const errorSignBidAmount = 120;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
@@ -255,7 +256,7 @@ describe("Auction", () => {
         [
           1,
           hNFT.address,
-          governanceToken.address,
+          ad3Token.address,
           errorSignBidAmount,
           prePareBidInfo.curBidId,
           prePareBidInfo.bidId,
@@ -284,10 +285,15 @@ describe("Auction", () => {
     });
 
     it("Should fail when signer is not the relayerAddr", async function () {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
+
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
 
       const preBidAmount = 10;
-      const bidAmount = 100;
+      const bidAmount =90;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
       const transaction = await auction
@@ -334,9 +340,14 @@ describe("Auction", () => {
     });
 
     it("Should fail when signature does not exist", async function () {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
 
-      const bidAmount = 100;
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+
+      const bidAmount = 90;
       const preBidAmount = 10;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const hNFTId = 1;
@@ -380,11 +391,16 @@ describe("Auction", () => {
     });
 
     it("Should success when preBid has already timed out", async () => {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
+   
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
 
       const hNFTId = 1;
       const preBidAmount = 10;
-      const bidAmount = 100;
+      const bidAmount = 90;
 
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
       const beforBalance = await ad3Token.balanceOf(bidder1.address);
@@ -439,7 +455,8 @@ describe("Auction", () => {
           curBidRemain
         );
       const afterBalance = await ad3Token.balanceOf(bidder1.address);
-      expect(beforBalance).to.equal(afterBalance);
+
+      expect(beforBalance).to.equal(afterBalance.add(bidAmount));
 
       const auctionTokenBalance = await governanceToken.balanceOf(
         auction.address
@@ -452,17 +469,25 @@ describe("Auction", () => {
       expect(auctionTokenBalance).to.equal(
         BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore)
       );
+
       expect(allowanceBalanceAfter).to.equal(
         BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore)
       );
     });
 
     it("should allow users to commitBid with added governance token", async () => {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
+
+      governance.issueGovernanceToken(hNFT.address, 1, "Mock GT", "MGT");
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+
+      governanceToken.connect(owner).transfer(bidder1.address, 1000)
 
       const hNFTId = 1;
-      const bidAmount = 10;
-      const preBidAmount = 10;
+      const bidAmount = 100;
+      const preBidAmount = 100;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
 
       await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
@@ -515,6 +540,86 @@ describe("Auction", () => {
 
       const preBidAmountRefund = await ad3Token.balanceOf(bidder1.address);
       expect(preBidAmountRefund).to.equal(100);
+
+      const auctionTokenBalance = await governanceToken.balanceOf(
+        auction.address
+      );
+      const allowanceBalanceAfter = await governanceToken.allowance(
+        auction.address,
+        relayer.address
+      );
+
+      expect(auctionTokenBalance).to.equal(
+        BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore)
+      );
+      expect(allowanceBalanceAfter).to.equal(
+        BigNumber.from(bidAmount - curBidRemain).add(allowanceBalanceBefore)
+      );
+    });
+
+    it("should allow users to commitBid with AD3 token as governance token", async () => {
+
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+
+      const hNFTId = 1;
+      const bidAmount = 10;
+      const preBidAmount = 10;
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+
+      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
+        hNFT.address,
+        hNFTId
+      );
+
+      await ad3Token
+        .connect(bidder1)
+        .approve(auction.address, bidAmount);
+      const messageHash = ethers.utils.solidityKeccak256(
+        ["uint256", "address", "address", "uint256", "uint256", "uint256"],
+        [
+          1,
+          hNFT.address,
+          ad3Token.address,
+          bidAmount,
+          prePareBidInfo.curBidId,
+          prePareBidInfo.bidId,
+        ]
+      );
+
+      const signature = await relayer.signMessage(
+        ethers.utils.arrayify(messageHash)
+      );
+
+      const curBidRemain = 0;
+      const allowanceBalanceBefore = await governanceToken.allowance(
+        auction.address,
+        relayer.address
+      );
+
+      await auction
+        .connect(bidder1)
+        .commitBid(
+          { hNFTId: hNFTId, hNFTContractAddr: hNFT.address },
+          bidAmount,
+          "slot-uri",
+          signature,
+          prePareBidInfo.curBidId,
+          prePareBidInfo.bidId,
+          curBidRemain
+        );
+
+      const currentBid = await auction.curBid(hNFT.address, 1);
+      expect(currentBid.bidId).to.equal(prePareBidInfo.bidId);
+      expect(currentBid.amount).to.equal(bidAmount);
+      expect(currentBid.bidder).to.equal(bidder1.address);
+
+      const preBidAmountRefund = await ad3Token.balanceOf(bidder1.address);
+      expect(preBidAmountRefund).to.equal(90);
 
       const auctionTokenBalance = await governanceToken.balanceOf(
         auction.address
@@ -600,12 +705,17 @@ describe("Auction", () => {
     });
 
     it("should refund the previous bidder when a new bid is submitted", async () => {
-      governance.governWith(hNFT.address, 1, governanceToken.address);
+     
+      governance.setDefaultGovernanceToken(ad3Token.address);
+
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
 
       const preBidAmount1 = 10;
-      const bidAmount1 = 100;
+      const bidAmount1 = 60;
       const preBidAmount2 = 10;
-      const bidAmount2 = 120;
+      const bidAmount2 = 110;
       const hNFTId = 1;
       await ad3Token.connect(bidder1).approve(auction.address, preBidAmount1);
 
@@ -637,6 +747,7 @@ describe("Auction", () => {
       const signature1 = await relayer.signMessage(
         ethers.utils.arrayify(messageHash1)
       );
+
       await auction
         .connect(bidder1)
         .commitBid(
@@ -690,7 +801,8 @@ describe("Auction", () => {
         ethers.utils.arrayify(messageHash2)
       );
 
-      const curBidRemain = 80;
+      
+      const curBidRemain = 20;
       // payout 20
       await governanceToken
         .connect(relayer)
@@ -699,6 +811,7 @@ describe("Auction", () => {
         auction.address,
         relayer.address
       );
+
       await auction
         .connect(bidder2)
         .commitBid(
@@ -724,15 +837,15 @@ describe("Auction", () => {
       const bidder1TokenBalance = await governanceToken.balanceOf(
         bidder1.address
       );
-      expect(bidder1Balance).to.equal(100);
-      expect(bidder1TokenBalance).to.equal(80);
+      expect(bidder1Balance).to.equal(60);
+      expect(bidder1TokenBalance).to.equal(60);
 
       const bidder2Balance = await ad3Token.balanceOf(bidder2.address);
       const bidder2TokenBalance = await governanceToken.balanceOf(
         bidder2.address
       );
-      expect(bidder2Balance).to.be.equal(120);
-      expect(bidder2TokenBalance).to.be.equal(0);
+      expect(bidder2Balance).to.be.equal(10);
+      expect(bidder2TokenBalance).to.be.equal(10);
 
       const auctionTokenBalance = await governanceToken.balanceOf(
         auction.address
