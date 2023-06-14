@@ -901,6 +901,30 @@ describe("Auction", () => {
     });
   });
 
+  describe("hnftGover address management", () => {
+    it("should allow the owner to get the hnftGover address", async () => {
+      const getHNFTGoverAddress = await auction
+        .connect(owner)
+        .getHNFTGoverAddress();
+      expect(getHNFTGoverAddress).to.equal(governance.address);
+    });
+
+    it("should allow the owner to update the hnftGover address", async () => {
+      const newHNFTGover = owner;
+      await auction.connect(owner).setHNFTGoverAddress(newHNFTGover.address);
+      const updatedHNFTGoverAddress = await auction
+        .connect(owner)
+        .getHNFTGoverAddress();
+      expect(updatedHNFTGoverAddress).to.equal(newHNFTGover.address);
+    });
+
+    it("should fail to set hnftGover address if not called by the owner", async () => {
+      await expect(
+        auction.connect(bidder1).setHNFTGoverAddress(bidder2.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
   describe("min deposit management", () => {
     it("should set the min deposit for pre-bid correctly", async () => {
       await auction.connect(owner).setMinDepositForPreBid(20);

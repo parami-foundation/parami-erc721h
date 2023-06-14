@@ -199,4 +199,12 @@ contract Auction is OwnableUpgradeable {
     function verify(address _signerAddress) private view returns (bool) {
         return _signerAddress == relayerAddress;
     }
+
+    function setHNFTGoverAddress(address _hnftGoverAddress) public onlyOwner {
+        hnftGoverAddress = _hnftGoverAddress;
+    }
+
+    function getHNFTGoverAddress() public onlyOwner view returns (address){
+        return hnftGoverAddress ;
+    }
 }
