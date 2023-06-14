@@ -29,5 +29,8 @@ jobs:
       - name: install dependencies
         run: npm i
 
+      - name: Rum compile
+        run: npm run compile
+
       - name: Run tests
         run: npm run test
