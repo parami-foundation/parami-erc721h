@@ -52,6 +52,14 @@ const config: HardhatUserConfig = {
           ? [process.env.TESTNET_PRIVATE_KEY]
           : [],
     },
+    arbitrumGoerli: {
+      chainId: 421613,
+      url: `https://arbitrum-goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY]
+          : [],
+    },
     localhost: {
       url: `http://localhost:8545`,
       accounts: [
@@ -66,6 +74,16 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+    customChains: [
+      {
+        network: "arbitrumGoerli",
+        chainId: 421613,
+        urls: {
+          apiURL: "https://api-goerli.arbiscan.io/api",
+          browserURL: "https://goerli.arbiscan.io/"
+        }
+      }
+    ]
   },
   contractSizer: {
     alphaSort: true,
