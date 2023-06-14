@@ -47,7 +47,7 @@ describe("HNFTGovernance", () => {
     const tokenId = 1;
     await expect(
       hnftGovernance.connect(addr1).issueGovernanceToken(hnftContract.address, tokenId, "MGB", "MGB")
-    ).to.be.revertedWith("Only the NFT owner can governed");
+    ).to.be.revertedWith("Only the NFT owner can issue governance token");
   });
 
   it("should emit event when NFT is issued", async () => {
