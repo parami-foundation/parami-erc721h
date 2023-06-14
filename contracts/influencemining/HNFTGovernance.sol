@@ -4,9 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./HNFTGovernanceToken.sol";
 
-contract HNFTGovernance is Ownable {
-
-    address public ad3Address;
+contract HNFTGovernance {
 
     mapping(address => mapping(uint256 => address)) public hnft2tokenId2GovernanceToken;
 
@@ -41,16 +39,7 @@ contract HNFTGovernance is Ownable {
         emit Governance(nftId, erc20Address);
     }
 
-    function setDefaultGovernanceToken(address defaultGovernanceToken) public onlyOwner {
-        ad3Address = defaultGovernanceToken;
-    }
-
     function getGovernanceToken(address hnftAddress, uint256 nftId) public view returns (address) {
-        address governanceToken = hnft2tokenId2GovernanceToken[hnftAddress][nftId];
-        if (governanceToken != address(0)) {
-            return governanceToken;
-        } else {
-            return ad3Address;
-        }
+        return hnft2tokenId2GovernanceToken[hnftAddress][nftId];
     }
 }

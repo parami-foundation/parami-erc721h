@@ -7,6 +7,7 @@ import {
   HNFTGovernance,
   HNFTGovernanceToken,
   AD3,
+  ERC20,
 } from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
@@ -16,7 +17,7 @@ describe("Auction", () => {
   let auction: Auction;
   let hNFT: EIP5489ForInfluenceMining;
   let ad3Token: MockAD3;
-  let governanceToken: HNFTGovernanceToken;
+  let governanceToken: ERC20;
   let governance: HNFTGovernance;
   let relayer: SignerWithAddress;
   let owner: SignerWithAddress;
@@ -235,12 +236,15 @@ describe("Auction", () => {
     });
 
     it("Should fail when signature content and input parameters or relayerAddr do not match", async function () {
-      governance.setDefaultGovernanceToken(ad3Token.address);
 
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
 
-      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
-
+      if (governanceTokenAddr == ethers.constants.AddressZero) {
+        governanceToken = ad3Token
+      } else {
+        governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      }
+    
       const preBidAmount = 10;
       const bidAmount = 90;
       const errorSignBidAmount = 120;
@@ -286,11 +290,12 @@ describe("Auction", () => {
 
     it("Should fail when signer is not the relayerAddr", async function () {
 
-      governance.setDefaultGovernanceToken(ad3Token.address);
-
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
-
-      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      if (governanceTokenAddr == ethers.constants.AddressZero) {
+        governanceToken = ad3Token
+      } else {
+        governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      }
 
       const preBidAmount = 10;
       const bidAmount =90;
@@ -341,11 +346,13 @@ describe("Auction", () => {
 
     it("Should fail when signature does not exist", async function () {
 
-      governance.setDefaultGovernanceToken(ad3Token.address);
-
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
 
-      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      if (governanceTokenAddr == ethers.constants.AddressZero) {
+        governanceToken = ad3Token
+      } else {
+        governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      }
 
       const bidAmount = 90;
       const preBidAmount = 10;
@@ -392,11 +399,13 @@ describe("Auction", () => {
 
     it("Should success when preBid has already timed out", async () => {
    
-      governance.setDefaultGovernanceToken(ad3Token.address);
-
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
 
-      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      if (governanceTokenAddr == ethers.constants.AddressZero) {
+        governanceToken = ad3Token
+      } else {
+        governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      }
 
       const hNFTId = 1;
       const preBidAmount = 10;
@@ -559,11 +568,13 @@ describe("Auction", () => {
 
     it("should allow users to commitBid with AD3 token as governance token", async () => {
 
-      governance.setDefaultGovernanceToken(ad3Token.address);
-
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
 
-      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      if (governanceTokenAddr == ethers.constants.AddressZero) {
+        governanceToken = ad3Token
+      } else {
+        governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      }
 
       const hNFTId = 1;
       const bidAmount = 10;
@@ -706,11 +717,13 @@ describe("Auction", () => {
 
     it("should refund the previous bidder when a new bid is submitted", async () => {
      
-      governance.setDefaultGovernanceToken(ad3Token.address);
-
       const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
 
-      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      if (governanceTokenAddr == ethers.constants.AddressZero) {
+        governanceToken = ad3Token
+      } else {
+        governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+      }
 
       const preBidAmount1 = 10;
       const bidAmount1 = 60;
