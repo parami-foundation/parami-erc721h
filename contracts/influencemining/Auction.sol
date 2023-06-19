@@ -52,7 +52,7 @@ contract Auction is OwnableUpgradeable {
     uint256 private TIMEOUT;
 
     // hNFTContractAddress => (hNFTId => (bidderAddress => preBidAmount))
-    mapping(address => mapping(uint256 => mapping(address => uint256))) preBidsAmount;
+    mapping(address => mapping(uint256 => mapping(address => uint256))) public preBidsAmount;
 
     /**
      * @dev address - nounce - used
@@ -182,7 +182,7 @@ contract Auction is OwnableUpgradeable {
     ) public returns (bool) {
         // cal message hash
         bytes32 hash = keccak256(
-            abi.encodePacked(to, amount, nounce)
+            abi.encodePacked(governanceTokenAddress, to, amount, nounce)
         );
         // convert to EthSignedMessage hash
         bytes32 message = ECDSA.toEthSignedMessageHash(hash);
@@ -195,6 +195,7 @@ contract Auction is OwnableUpgradeable {
         );
         
         require(addressNonceUsed[to][nounce] == false, "nounce must not used");
+        require(IERC20(governanceTokenAddress).balanceOf(address(this)) >= amount, "balance not enough");
         addressNonceUsed[to][nounce] = true;
         IERC20 goverTokenAddr = IERC20(governanceTokenAddress);
         goverTokenAddr.transfer(to, amount);
@@ -204,7 +205,13 @@ contract Auction is OwnableUpgradeable {
     function withdrawPreBidAmount(
         address hNftAddr, uint256 hNFTId
     ) public returns (bool) {
-        require(preBidsAmount[hNftAddr][hNFTId][_msgSender()] > 0, "No remain preBid Amount");
+        address currentPreBidAddress = preBids[hNftAddr][hNFTId].bidder;
+        if (currentPreBidAddress == _msgSender()) {
+            preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] = preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] + MIN_DEPOIST_FOR_PRE_BID;
+            delete preBids[hNftAddr][hNFTId];
+        } else {
+            require(preBidsAmount[hNftAddr][hNFTId][_msgSender()] > 0, "No remain preBid Amount");
+        }
         IERC20 ad3Addr = IERC20(ad3Address);
         uint256 preBidAmount = preBidsAmount[hNftAddr][hNFTId][_msgSender()];
         ad3Addr.transfer(_msgSender(), preBidAmount);
