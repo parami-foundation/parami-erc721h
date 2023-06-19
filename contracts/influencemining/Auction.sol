@@ -114,7 +114,10 @@ contract Auction is OwnableUpgradeable {
         require(token.allowance(_msgSender(), address(this)) >= governanceTokenAmount, "allowance not enough");
         address _signAddress = recover(hNFTInfo.hNFTId, hNFTInfo.hNFTContractAddr, address(token), governanceTokenAmount, curBidId, preBidId, _signature);
         require(verify(_signAddress), "Invalid Signer!");
-        require(_isAtLeast120Percent(curBidRemain, governanceTokenAmount), "The bid is less than 120%");
+        address currentBidTokenAddr = curBid[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].governanceTokenAddr;
+        if (currentBidTokenAddr == address(token)) {
+            require(_isAtLeast120Percent(curBidRemain, governanceTokenAmount), "The bid is less than 120%");
+        }
         require(_msgSender() == preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidder, "Not the preBid owner");
 
         _refundPrevBidIfRequired(hNFTInfo.hNFTContractAddr, hNFTInfo.hNFTId, curBidRemain);
