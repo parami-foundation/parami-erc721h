@@ -12,7 +12,6 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { string } from "hardhat/internal/core/params/argumentTypes";
-import { describe, it } from "mocha";
 
 describe("Auction", () => {
   let auction: Auction;
@@ -182,7 +181,7 @@ describe("Auction", () => {
       expect(preBidId2).to.not.equal(prePareBidInfo.bidId);
     });
 
-    it("Should allow users to withdraw prebid token after prebid timeout if they don't commitBid", async () => {
+    it("Should allow users to withdraw prebid token if they don't commitBid after other user prebid", async () => {
       const hNFTId = 1;
       const preBidAmount = 10;
 
@@ -211,7 +210,7 @@ describe("Auction", () => {
       expect(afterWithdrawPreBidAmount).to.be.equal(0)
     });
 
-    it("Should allow users to withdraw prebid token to cancel in prebid duration", async () => {
+    it("Should allow users to withdraw prebid token after timeout", async () => {
       const hNFTId = 1;
       const preBidAmount = 10;
 
@@ -224,11 +223,70 @@ describe("Auction", () => {
       expect(prePareBidInfo.curBidId).to.equal(0);
       expect(prePareBidInfo.bidId).to.be.gt(0);
 
+      await ethers.provider.send("evm_increaseTime", [11 * 60]);
+      await ethers.provider.send("evm_mine", []);
+
       const withdrawAction = await auction.connect(bidder1).withdrawPreBidAmount(hNFT.address, hNFTId);
 
       const afterWithdrawPreBidAmount = await auction.connect(bidder1).preBidsAmount(hNFT.address, hNFTId, bidder1.address);
 
       expect(afterWithdrawPreBidAmount).to.be.equal(0)
+    });
+
+    it("Should fail when user withdraw prebid token when prebid not timeout", async () => {
+      const hNFTId = 1;
+      const preBidAmount = 10;
+
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
+        hNFT.address,
+        hNFTId
+      );
+      expect(prePareBidInfo.curBidId).to.equal(0);
+      expect(prePareBidInfo.bidId).to.be.gt(0);
+      
+      await expect(
+        auction.connect(bidder1).withdrawPreBidAmount(hNFT.address, hNFTId)
+      ).to.be.revertedWith("Your last preBid still within the valid time");
+    });
+
+    it("Should allow users to cancel prebid", async () => {
+      const hNFTId = 1;
+      const preBidAmount = 10;
+
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
+        hNFT.address,
+        hNFTId
+      );
+      expect(prePareBidInfo.curBidId).to.equal(0);
+      expect(prePareBidInfo.bidId).to.be.gt(0);
+
+      await auction.connect(bidder1).cancelPreBid(hNFT.address, hNFTId);
+
+      const lastBidAmount = (await auction.connect(bidder1).preBids(hNFT.address, hNFTId)).amount;
+
+      expect(lastBidAmount).to.be.equal(0);
+    });
+
+    it("Should fail when user to cancel others' prebid", async () => {
+      const hNFTId = 1;
+      const preBidAmount = 10;
+
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
+        hNFT.address,
+        hNFTId
+      );
+      expect(prePareBidInfo.curBidId).to.equal(0);
+      expect(prePareBidInfo.bidId).to.be.gt(0);
+
+      await expect(
+        auction.connect(bidder2).cancelPreBid(hNFT.address, hNFTId)
+      ).to.be.revertedWith("Not the preBidder!");
     });
   });
 

@@ -86,8 +86,9 @@ contract Auction is OwnableUpgradeable {
         address governanceTokenAddr = HNFTGovernance(hnftGoverAddress).getGovernanceToken(hNFTContractAddr, hNFTId);
         governanceTokenAddr = governanceTokenAddr == address(0) ? ad3Address : governanceTokenAddr;
         address lastBidderAddress = preBids[hNFTContractAddr][hNFTId].bidder;
+        uint256 lastBidderAmount = preBids[hNFTContractAddr][hNFTId].amount;
         if (lastBidderAddress != address(0)) {
-            preBidsAmount[hNFTContractAddr][hNFTId][lastBidderAddress] = preBidsAmount[hNFTContractAddr][hNFTId][lastBidderAddress] + MIN_DEPOIST_FOR_PRE_BID;
+            preBidsAmount[hNFTContractAddr][hNFTId][lastBidderAddress] = preBidsAmount[hNFTContractAddr][hNFTId][lastBidderAddress] + lastBidderAmount;
         }
         preBids[hNFTContractAddr][hNFTId]= PreBid(preBidId, MIN_DEPOIST_FOR_PRE_BID, _msgSender(), block.timestamp, governanceTokenAddr);
         uint256 curBidId = curBid[hNFTContractAddr][hNFTId].bidId != 0 ? curBid[hNFTContractAddr][hNFTId].bidId : 0;
@@ -203,19 +204,36 @@ contract Auction is OwnableUpgradeable {
     }
 
     function withdrawPreBidAmount(
-        address hNftAddr, uint256 hNFTId
+        address hNftAddr, 
+        uint256 hNFTId
     ) public returns (bool) {
         address currentPreBidAddress = preBids[hNftAddr][hNFTId].bidder;
+        uint256 currentBidderAmount = preBids[hNftAddr][hNFTId].amount;
         if (currentPreBidAddress == _msgSender()) {
-            preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] = preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] + MIN_DEPOIST_FOR_PRE_BID;
+            require(block.timestamp >= preBids[hNftAddr][hNFTId].preBidTime.add(TIMEOUT), "Your last preBid still within the valid time");
+            preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] = preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] + currentBidderAmount;
             delete preBids[hNftAddr][hNFTId];
         } else {
             require(preBidsAmount[hNftAddr][hNFTId][_msgSender()] > 0, "No remain preBid Amount");
         }
         IERC20 ad3Addr = IERC20(ad3Address);
         uint256 preBidAmount = preBidsAmount[hNftAddr][hNFTId][_msgSender()];
+        require(ad3Addr.balanceOf(address(this)) >= preBidAmount, "balance not enough");
         ad3Addr.transfer(_msgSender(), preBidAmount);
         delete preBidsAmount[hNftAddr][hNFTId][_msgSender()];
+        return true;
+    }
+
+    function cancelPreBid(
+        address hNftAddr,
+        uint256 hNFTId
+    ) public returns (bool) {
+        require(_msgSender() == preBids[hNftAddr][hNFTId].bidder, "Not the preBidder!");
+        IERC20 ad3Addr = IERC20(ad3Address);
+        uint256 currentPreBidAmount = preBids[hNftAddr][hNFTId].amount;
+        require(ad3Addr.balanceOf(address(this)) >= currentPreBidAmount, "balance not enough");
+        ad3Addr.transfer(_msgSender(), currentPreBidAmount);
+        delete preBids[hNftAddr][hNFTId];
         return true;
     }
 
