@@ -196,7 +196,6 @@ contract Auction is OwnableUpgradeable {
         );
         
         require(addressNonceUsed[to][nounce] == false, "nounce must not used");
-        require(IERC20(governanceTokenAddress).balanceOf(address(this)) >= amount, "balance not enough");
         addressNonceUsed[to][nounce] = true;
         IERC20 goverTokenAddr = IERC20(governanceTokenAddress);
         goverTokenAddr.transfer(to, amount);
@@ -218,22 +217,8 @@ contract Auction is OwnableUpgradeable {
         }
         IERC20 ad3Addr = IERC20(ad3Address);
         uint256 preBidAmount = preBidsAmount[hNftAddr][hNFTId][_msgSender()];
-        require(ad3Addr.balanceOf(address(this)) >= preBidAmount, "balance not enough");
         ad3Addr.transfer(_msgSender(), preBidAmount);
         delete preBidsAmount[hNftAddr][hNFTId][_msgSender()];
-        return true;
-    }
-
-    function cancelPreBid(
-        address hNftAddr,
-        uint256 hNFTId
-    ) public returns (bool) {
-        require(_msgSender() == preBids[hNftAddr][hNFTId].bidder, "Not the preBidder!");
-        IERC20 ad3Addr = IERC20(ad3Address);
-        uint256 currentPreBidAmount = preBids[hNftAddr][hNFTId].amount;
-        require(ad3Addr.balanceOf(address(this)) >= currentPreBidAmount, "balance not enough");
-        ad3Addr.transfer(_msgSender(), currentPreBidAmount);
-        delete preBids[hNftAddr][hNFTId];
         return true;
     }
 
