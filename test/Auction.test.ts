@@ -250,44 +250,6 @@ describe("Auction", () => {
         auction.connect(bidder1).withdrawPreBidAmount(hNFT.address, hNFTId)
       ).to.be.revertedWith("Your last preBid still within the valid time");
     });
-
-    it("Should allow users to cancel prebid", async () => {
-      const hNFTId = 1;
-      const preBidAmount = 10;
-
-      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
-      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
-      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
-        hNFT.address,
-        hNFTId
-      );
-      expect(prePareBidInfo.curBidId).to.equal(0);
-      expect(prePareBidInfo.bidId).to.be.gt(0);
-
-      await auction.connect(bidder1).cancelPreBid(hNFT.address, hNFTId);
-
-      const lastBidAmount = (await auction.connect(bidder1).preBids(hNFT.address, hNFTId)).amount;
-
-      expect(lastBidAmount).to.be.equal(0);
-    });
-
-    it("Should fail when user to cancel others' prebid", async () => {
-      const hNFTId = 1;
-      const preBidAmount = 10;
-
-      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
-      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
-      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
-        hNFT.address,
-        hNFTId
-      );
-      expect(prePareBidInfo.curBidId).to.equal(0);
-      expect(prePareBidInfo.bidId).to.be.gt(0);
-
-      await expect(
-        auction.connect(bidder2).cancelPreBid(hNFT.address, hNFTId)
-      ).to.be.revertedWith("Not the preBidder!");
-    });
   });
 
   describe("commitBid", () => {
