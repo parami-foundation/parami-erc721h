@@ -51,6 +51,15 @@ contract Auction is OwnableUpgradeable {
     uint256 private MIN_DEPOIST_FOR_PRE_BID;
     uint256 private TIMEOUT;
 
+    // hNFTContractAddress => (hNFTId => (bidderAddress => preBidAmount))
+    mapping(address => mapping(uint256 => mapping(address => uint256))) public preBidsAmount;
+
+    /**
+     * @dev address - nounce - used
+     * @notice used if true, not used if false
+     **/
+    mapping(address => mapping(uint256 => bool)) public addressNonceUsed;
+
     function initialize(address _relayerAddress, address _ad3Address, address _hnftGoverAddress) public initializer {
         __Ownable_init();
         relayerAddress = _relayerAddress;
@@ -76,6 +85,11 @@ contract Auction is OwnableUpgradeable {
         uint256 preBidId = _generateRandomNumber();
         address governanceTokenAddr = HNFTGovernance(hnftGoverAddress).getGovernanceToken(hNFTContractAddr, hNFTId);
         governanceTokenAddr = governanceTokenAddr == address(0) ? ad3Address : governanceTokenAddr;
+        address lastBidderAddress = preBids[hNFTContractAddr][hNFTId].bidder;
+        uint256 lastBidderAmount = preBids[hNFTContractAddr][hNFTId].amount;
+        if (lastBidderAddress != address(0)) {
+            preBidsAmount[hNFTContractAddr][hNFTId][lastBidderAddress] = preBidsAmount[hNFTContractAddr][hNFTId][lastBidderAddress] + lastBidderAmount;
+        }
         preBids[hNFTContractAddr][hNFTId]= PreBid(preBidId, MIN_DEPOIST_FOR_PRE_BID, _msgSender(), block.timestamp, governanceTokenAddr);
         uint256 curBidId = curBid[hNFTContractAddr][hNFTId].bidId != 0 ? curBid[hNFTContractAddr][hNFTId].bidId : 0;
 
@@ -101,7 +115,10 @@ contract Auction is OwnableUpgradeable {
         require(token.allowance(_msgSender(), address(this)) >= governanceTokenAmount, "allowance not enough");
         address _signAddress = recover(hNFTInfo.hNFTId, hNFTInfo.hNFTContractAddr, address(token), governanceTokenAmount, curBidId, preBidId, _signature);
         require(verify(_signAddress), "Invalid Signer!");
-        require(_isAtLeast120Percent(curBidRemain, governanceTokenAmount), "The bid is less than 120%");
+        address currentBidTokenAddr = curBid[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].governanceTokenAddr;
+        if (currentBidTokenAddr == address(token)) {
+            require(_isAtLeast120Percent(curBidRemain, governanceTokenAmount), "The bid is less than 120%");
+        }
         require(_msgSender() == preBids[hNFTInfo.hNFTContractAddr][hNFTInfo.hNFTId].bidder, "Not the preBid owner");
 
         _refundPrevBidIfRequired(hNFTInfo.hNFTContractAddr, hNFTInfo.hNFTId, curBidRemain);
@@ -116,6 +133,14 @@ contract Auction is OwnableUpgradeable {
 
     function getRelayerAddress() public onlyOwner view returns (address){
         return relayerAddress ;
+    }
+
+    function setHNFTGoverAddress(address _hnftGoverAddress) public onlyOwner {
+        hnftGoverAddress = _hnftGoverAddress;
+    }
+
+    function getHNFTGoverAddress() public onlyOwner view returns (address){
+        return hnftGoverAddress ;
     }
 
     function setMinDepositForPreBid (uint256 _MIN_DEPOIST_FOR_PRE_BID) public onlyOwner {
@@ -147,6 +172,54 @@ contract Auction is OwnableUpgradeable {
         });
 
         return params;
+    }
+
+    function withdrawGovernanceToken(
+        address governanceTokenAddress,
+        address to,
+        uint256 amount,
+        uint256 nounce,
+        bytes memory signature
+    ) public returns (bool) {
+        // cal message hash
+        bytes32 hash = keccak256(
+            abi.encodePacked(governanceTokenAddress, to, amount, nounce)
+        );
+        // convert to EthSignedMessage hash
+        bytes32 message = ECDSA.toEthSignedMessageHash(hash);
+        // recover signer address
+        address receivedAddress = ECDSA.recover(message, signature);
+        // verify recevivedAddress with signer
+        require(
+            receivedAddress != address(0) && receivedAddress == relayerAddress,
+            "signature not valid"
+        );
+        
+        require(addressNonceUsed[to][nounce] == false, "nounce must not used");
+        addressNonceUsed[to][nounce] = true;
+        IERC20 goverTokenAddr = IERC20(governanceTokenAddress);
+        goverTokenAddr.transfer(to, amount);
+        return true;
+    }
+
+    function withdrawPreBidAmount(
+        address hNftAddr, 
+        uint256 hNFTId
+    ) public returns (bool) {
+        address currentPreBidAddress = preBids[hNftAddr][hNFTId].bidder;
+        uint256 currentBidderAmount = preBids[hNftAddr][hNFTId].amount;
+        if (currentPreBidAddress == _msgSender()) {
+            require(block.timestamp >= preBids[hNftAddr][hNFTId].preBidTime.add(TIMEOUT), "Your last preBid still within the valid time");
+            preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] = preBidsAmount[hNftAddr][hNFTId][currentPreBidAddress] + currentBidderAmount;
+            delete preBids[hNftAddr][hNFTId];
+        } else {
+            require(preBidsAmount[hNftAddr][hNFTId][_msgSender()] > 0, "No remain preBid Amount");
+        }
+        IERC20 ad3Addr = IERC20(ad3Address);
+        uint256 preBidAmount = preBidsAmount[hNftAddr][hNFTId][_msgSender()];
+        ad3Addr.transfer(_msgSender(), preBidAmount);
+        delete preBidsAmount[hNftAddr][hNFTId][_msgSender()];
+        return true;
     }
 
     // --- Private Function ---
@@ -198,13 +271,5 @@ contract Auction is OwnableUpgradeable {
 
     function verify(address _signerAddress) private view returns (bool) {
         return _signerAddress == relayerAddress;
-    }
-
-    function setHNFTGoverAddress(address _hnftGoverAddress) public onlyOwner {
-        hnftGoverAddress = _hnftGoverAddress;
-    }
-
-    function getHNFTGoverAddress() public onlyOwner view returns (address){
-        return hnftGoverAddress ;
     }
 }

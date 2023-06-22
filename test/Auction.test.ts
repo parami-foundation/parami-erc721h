@@ -180,6 +180,76 @@ describe("Auction", () => {
       expect(preBidId2).to.be.gt(0);
       expect(preBidId2).to.not.equal(prePareBidInfo.bidId);
     });
+
+    it("Should allow users to withdraw prebid token if they don't commitBid after other user prebid", async () => {
+      const hNFTId = 1;
+      const preBidAmount = 10;
+
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
+        hNFT.address,
+        hNFTId
+      );
+      expect(prePareBidInfo.curBidId).to.equal(0);
+      expect(prePareBidInfo.bidId).to.be.gt(0);
+
+      await ethers.provider.send("evm_increaseTime", [11 * 60]);
+      await ethers.provider.send("evm_mine", []);
+
+      await ad3Token.connect(bidder2).approve(auction.address, preBidAmount);
+      await auction.connect(bidder2).preBid(hNFT.address, hNFTId);
+
+      const savedBidder1PrebidAmount = await auction.connect(bidder1).preBidsAmount(hNFT.address, hNFTId, bidder1.address);
+      expect(savedBidder1PrebidAmount).to.be.equal(preBidAmount);
+
+      const withdrawAction = await auction.connect(bidder1).withdrawPreBidAmount(hNFT.address, hNFTId);
+
+      const afterWithdrawPreBidAmount = await auction.connect(bidder1).preBidsAmount(hNFT.address, hNFTId, bidder1.address);
+
+      expect(afterWithdrawPreBidAmount).to.be.equal(0)
+    });
+
+    it("Should allow users to withdraw prebid token after timeout", async () => {
+      const hNFTId = 1;
+      const preBidAmount = 10;
+
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
+        hNFT.address,
+        hNFTId
+      );
+      expect(prePareBidInfo.curBidId).to.equal(0);
+      expect(prePareBidInfo.bidId).to.be.gt(0);
+
+      await ethers.provider.send("evm_increaseTime", [11 * 60]);
+      await ethers.provider.send("evm_mine", []);
+
+      const withdrawAction = await auction.connect(bidder1).withdrawPreBidAmount(hNFT.address, hNFTId);
+
+      const afterWithdrawPreBidAmount = await auction.connect(bidder1).preBidsAmount(hNFT.address, hNFTId, bidder1.address);
+
+      expect(afterWithdrawPreBidAmount).to.be.equal(0)
+    });
+
+    it("Should fail when user withdraw prebid token when prebid not timeout", async () => {
+      const hNFTId = 1;
+      const preBidAmount = 10;
+
+      await ad3Token.connect(bidder1).approve(auction.address, preBidAmount);
+      await auction.connect(bidder1).preBid(hNFT.address, hNFTId);
+      const prePareBidInfo: PrepareBidInfo = await auction.getPrepareBidInfo(
+        hNFT.address,
+        hNFTId
+      );
+      expect(prePareBidInfo.curBidId).to.equal(0);
+      expect(prePareBidInfo.bidId).to.be.gt(0);
+      
+      await expect(
+        auction.connect(bidder1).withdrawPreBidAmount(hNFT.address, hNFTId)
+      ).to.be.revertedWith("Your last preBid still within the valid time");
+    });
   });
 
   describe("commitBid", () => {
@@ -960,6 +1030,48 @@ describe("Auction", () => {
       expect(minDepositBalanceAfter).to.equal(
         BigNumber.from(minDepositBalanceBefore).add(10)
       );
+    });
+  });
+
+  describe("withdraw governance token", () => {
+    it("should allow user to withdraw ad3 token", async () => {
+      const withdrawAmount = 10;
+      const nouce = 1;
+
+      await ad3Token.transfer(auction.address, withdrawAmount);
+
+      const messageHash = ethers.utils.solidityKeccak256(
+        ["address", "address", "uint256", "uint256"],
+        [ad3Token.address, bidder1.address, withdrawAmount, nouce]
+      );
+
+      const signature = await relayer.signMessage(
+        ethers.utils.arrayify(messageHash)
+      );
+
+      await auction.connect(bidder1).withdrawGovernanceToken(ad3Token.address, bidder1.address, withdrawAmount, nouce, signature);
+    });
+
+    it("should allow user to withdraw governance token", async () => {
+      governance.issueGovernanceToken(hNFT.address, 1, "Mock GT", "MGT");
+      const governanceTokenAddr = await governance.getGovernanceToken(hNFT.address, 1);
+      governanceToken = await ethers.getContractAt("HNFTGovernanceToken", governanceTokenAddr, owner);
+ 
+      const withdrawAmount = 10;
+      const nouce = 1;
+
+      governanceToken.connect(owner).transfer(auction.address, withdrawAmount);
+
+      const messageHash = ethers.utils.solidityKeccak256(
+        ["address", "address", "uint256", "uint256"],
+        [governanceToken.address, bidder1.address, withdrawAmount, nouce]
+      );
+
+      const signature = await relayer.signMessage(
+        ethers.utils.arrayify(messageHash)
+      );
+
+      await auction.connect(bidder1).withdrawGovernanceToken(governanceToken.address, bidder1.address, withdrawAmount, nouce, signature);
     });
   });
 });
