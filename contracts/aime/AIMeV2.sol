@@ -104,7 +104,7 @@ contract AIMe is Ownable {
         if (curBidRemain[aimeAddress] > 0) {
             // cal message hash
             bytes32 hash = keccak256(
-                abi.encodePacked("refund", aimeAddress, bidId, curBid[aimeAddress].advertiser, refundAmount)
+                abi.encodePacked("refund", aimeAddress, curBid[aimeAddress].bidId, curBid[aimeAddress].advertiser, refundAmount)
             );
             _validateSigner(hash, signature);
 
