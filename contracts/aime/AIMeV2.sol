@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./AIMePower.sol";
 
 contract AIMe is Ownable {
-
     struct Bid {
         uint256 bidId;
         string url;
@@ -24,9 +23,20 @@ contract AIMe is Ownable {
     uint256 public AIME_MIN_BID_AMOUNT = 1e13;
 
     event AIMeCreated(address aimeOwnerAddress, address powerAddress);
-    event BidRefunded(uint256 bidId, address aimeAddress, address to, uint256 amount);
     event AIMeAdBid(uint256 bidId, address aimeAddress, address advertiser);
-    event AdRewardClaimed(uint256 bidId, address aimeAddress, address to, uint256 amount);
+    event AdBidEnded(uint256 bidId, address aimeAddress, address advertiser);
+    event BidRefunded(
+        uint256 bidId,
+        address aimeAddress,
+        address to,
+        uint256 amount
+    );
+    event AdRewardClaimed(
+        uint256 bidId,
+        address aimeAddress,
+        address to,
+        uint256 amount
+    );
     event AIMeRewardClaimed(address aimeAddress, address to, uint256 amount);
 
     /**
@@ -34,7 +44,6 @@ contract AIMe is Ownable {
      * @notice used if true, not used if false
      **/
     mapping(address => mapping(uint256 => bool)) public addressNonceUsed;
-
 
     // AIMe address => AIMe Power address
     mapping(address => address) public aimePowerAddress;
@@ -47,12 +56,19 @@ contract AIMe is Ownable {
 
     function _generateRandomNumber() private view returns (uint256) {
         bytes32 blockHash = blockhash(block.number);
-        bytes memory concatData = abi.encodePacked(blockHash, block.timestamp, block.coinbase);
+        bytes memory concatData = abi.encodePacked(
+            blockHash,
+            block.timestamp,
+            block.coinbase
+        );
         bytes32 hash = keccak256(concatData);
         return uint256(hash);
     }
 
-    function _validateSigner(bytes32 hash, bytes memory signature) private view returns (bool) {
+    function _validateSigner(
+        bytes32 hash,
+        bytes memory signature
+    ) private view returns (bool) {
         // convert to EthSignedMessage hash
         bytes32 message = ECDSA.toEthSignedMessageHash(hash);
         // recover signer address
@@ -65,15 +81,23 @@ contract AIMe is Ownable {
         return true;
     }
 
+    function _isAtLeast120Percent(
+        uint256 lastBidAmount,
+        uint256 bidAmount
+    ) private pure returns (bool) {
+        uint256 result = lastBidAmount.mul(12).div(10);
+        return bidAmount >= result;
+    }
+
     function setAttester(address _attester) public onlyOwner {
         attester = _attester;
     }
 
-    function createAIMe(
-        string memory name,
-        string memory symbol
-    ) public {
-        require(aimePowerAddress[msg.sender] == address(0), "AIMe already created");
+    function createAIMe(string memory name, string memory symbol) public {
+        require(
+            aimePowerAddress[msg.sender] == address(0),
+            "AIMe already created"
+        );
         AIMePower aimePower = new AIMePower(name, symbol);
         aimePower.mint(msg.sender, AIME_CREATOR_POWER_AMOUNT);
         aimePower.mint(address(this), AIME_REWARD_AMOUNT);
@@ -88,8 +112,6 @@ contract AIMe is Ownable {
     function bidAd(
         address aimeAddress,
         uint256 bidId,
-        uint256 refundAmount,
-        bytes memory signature,
         string memory url,
         string memory desc,
         uint256 amount
@@ -97,33 +119,71 @@ contract AIMe is Ownable {
         require(aimePowerAddress[aimeAddress] != address(0), "Invalid AIMe");
         require(amount >= AIME_MIN_BID_AMOUNT, "Insufficient bid amount");
         IERC20 power = IERC20(aimePowerAddress[aimeAddress]);
-        
-        // require: no current bid or current bid run out or expired
-        require((block.timestamp > curBid[aimeAddress].time + TIMEOUT) || curBidRemain[aimeAddress] == 0, "Current Bid still valid");
 
-        if (curBidRemain[aimeAddress] > 0) {
-            // cal message hash
-            bytes32 hash = keccak256(
-                abi.encodePacked("refund", aimeAddress, curBid[aimeAddress].bidId, curBid[aimeAddress].advertiser, refundAmount)
+        if (block.timestamp < curBid[aimeAddress].time + TIMEOUT) {
+            require(
+                _isAtLeast120Percent(curBidRemain[aimeAddress], amount),
+                "Insufficient bid price"
             );
-            _validateSigner(hash, signature);
+        }
 
-            if (refundAmount > 0) {
-                power.transfer(curBid[aimeAddress].advertiser, refundAmount);
-                emit BidRefunded(curBid[aimeAddress].bidId, aimeAddress, curBid[aimeAddress].advertiser, refundAmount);
-            }
+        if (curBid[aimeAddress].bidId) {
+            emit AdBidEnded(
+                curBid[aimeAddress].bidId,
+                aimeAddress,
+                curBid[aimeAddress].advertiser
+            );
         }
 
         // transfer power from advertiser
         require(power.balanceOf(msg.sender) >= amount, "balance not enough");
-        require(power.allowance(msg.sender, address(this)) >= amount, "allowance not enough");
+        require(
+            power.allowance(msg.sender, address(this)) >= amount,
+            "allowance not enough"
+        );
         power.transferFrom(msg.sender, address(this), amount);
-        
+
         // create new bid
         uint256 newBidId = _generateRandomNumber();
-        curBid[aimeAddress] = Bid(newBidId, url, desc, amount, msg.sender, block.timestamp);
+        curBid[aimeAddress] = Bid(
+            newBidId,
+            url,
+            desc,
+            amount,
+            msg.sender,
+            block.timestamp
+        );
         curBidRemain[aimeAddress] = amount;
         emit AIMeAdBid(newBidId, aimeAddress, msg.sender);
+    }
+
+    function claimBidRefund(
+        address aimeAddress,
+        uint256 bidId,
+        uint256 amount,
+        uint256 nonce,
+        bytes memory signature
+    ) external returns (bool) {
+        require(aimePowerAddress[aimeAddress] != address(0), "Invalid AIMe");
+        IERC20 power = IERC20(aimePowerAddress[aimeAddress]);
+
+        // cal message hash
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                "BidRefund",
+                aimeAddress,
+                bidId,
+                msg.sender,
+                amount,
+                nonce
+            )
+        );
+        _validateSigner(hash, signature);
+
+        // refund powers
+        power.transfer(msg.sender, amount);
+        emit BidRefunded(bidId, aimeAddress, msg.sender, amount);
+        return true;
     }
 
     function claimAdReward(
@@ -138,7 +198,14 @@ contract AIMe is Ownable {
 
         // cal message hash
         bytes32 hash = keccak256(
-            abi.encodePacked("AdReward", aimeAddress, bidId, msg.sender, amount, nonce)
+            abi.encodePacked(
+                "AdReward",
+                aimeAddress,
+                bidId,
+                msg.sender,
+                amount,
+                nonce
+            )
         );
         _validateSigner(hash, signature);
 
@@ -147,8 +214,13 @@ contract AIMe is Ownable {
             curBidRemain[aimeAddress] -= amount;
         }
         power.transfer(msg.sender, amount);
-        
-        emit AdRewardClaimed(curBid[aimeAddress].bidId, aimeAddress, msg.sender, amount);
+
+        emit AdRewardClaimed(
+            curBid[aimeAddress].bidId,
+            aimeAddress,
+            msg.sender,
+            amount
+        );
         return true;
     }
 
@@ -163,7 +235,13 @@ contract AIMe is Ownable {
 
         // cal message hash
         bytes32 hash = keccak256(
-            abi.encodePacked("AIMeReward", aimeAddress, msg.sender, amount, nonce)
+            abi.encodePacked(
+                "AIMeReward",
+                aimeAddress,
+                msg.sender,
+                amount,
+                nonce
+            )
         );
         _validateSigner(hash, signature);
 
@@ -171,7 +249,7 @@ contract AIMe is Ownable {
         require(aimeRewardBalance[aimeAddress] >= amount, "Rewards run out");
         aimeRewardBalance[aimeAddress] -= amount;
         power.transfer(msg.sender, amount);
-        
+
         emit AIMeRewardClaimed(aimeAddress, msg.sender, amount);
         return true;
     }
