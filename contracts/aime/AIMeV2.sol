@@ -3,10 +3,13 @@ pragma solidity >=0.8.2 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./AIMePower.sol";
 
 contract AIMe is Ownable {
+    using SafeMath for uint256;
+
     struct Bid {
         uint256 bidId;
         string url;
@@ -111,7 +114,6 @@ contract AIMe is Ownable {
 
     function bidAd(
         address aimeAddress,
-        uint256 bidId,
         string memory url,
         string memory desc,
         uint256 amount
@@ -127,7 +129,7 @@ contract AIMe is Ownable {
             );
         }
 
-        if (curBid[aimeAddress].bidId) {
+        if (curBid[aimeAddress].bidId != 0) {
             emit AdBidEnded(
                 curBid[aimeAddress].bidId,
                 aimeAddress,
