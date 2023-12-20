@@ -24,7 +24,7 @@ contract AIMePowersV3 is Ownable {
 
     // PowerAddress => (Holder => Balance)
     mapping(address => mapping(address => uint256)) public powerBalance;
-
+    
     mapping(address => address) public referrer;
 
     // PowerAddress => Supply
