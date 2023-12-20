@@ -45,11 +45,32 @@ const config: HardhatUserConfig = {
           ? [process.env.MAINNET_PRIVATE_KEY]
           : [],
     },
+    optimism: {
+      url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY_AIME_TEST !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY_AIME_TEST]
+          : [],
+    },
     goerli: {
       url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts:
         process.env.TESTNET_PRIVATE_KEY !== undefined
           ? [process.env.TESTNET_PRIVATE_KEY]
+          : [],
+    },
+    scrollSepolia: {
+      url: "https://sepolia-rpc.scroll.io/" || "",
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY_AIME_TEST !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY_AIME_TEST]
+          : [],
+    },
+    arbitrumOne: {
+      url: "https://arb1.arbitrum.io/rpc",
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY_AIME_TEST !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY_AIME_TEST]
           : [],
     },
     localhost: {
@@ -65,7 +86,17 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.OP_API_KEY,
+    customChains: [
+      {
+        network: "scrollSepolia",
+        chainId: 534351,
+        urls: {
+          apiURL: "https://sepolia-blockscout.scroll.io/api",
+          browserURL: "https://sepolia-blockscout.scroll.io/",
+        },
+      },
+    ],
   },
   contractSizer: {
     alphaSort: true,

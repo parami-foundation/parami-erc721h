@@ -11,7 +11,9 @@
     "test": "hardhat test",
     "clear-cache": "rm -rf artifacts/ cache/ typechain/",
     "deploy-goerli": "npx hardhat run --network goerli ./scripts/deploy.ts",
-    "verify-goerli": "npx hardhat verify --contract contracts/ERC721WRegistry.sol:ERC721WRegistry --network goerli"
+    "deploy-aime": "npx hardhat run --network optimism ./scripts/aime/deploy_aime.ts",
+    "verify-goerli": "npx hardhat verify --contract contracts/ERC721WRegistry.sol:ERC721WRegistry --network goerli",
+    "verify-aime": "npx hardhat verify --contract contracts/aime/AIMeV4.sol:AIMePowersV4 --network optimism"
   },
   "author": "",
   "license": "ISC",
@@ -53,8 +55,8 @@
     "typescript": "^4.6.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0",
-    "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1",
+    "@openzeppelin/contracts": "^4.9.3",
+    "@openzeppelin/contracts-upgradeable": "^4.9.3",
     "@uniswap/v3-core": "^1.0.1",
     "@uniswap/v3-periphery": "^1.4.4"
   }
