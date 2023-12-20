@@ -42,6 +42,7 @@ contract AIMePowersV5 is Ownable {
 
     function setReferrer(address referrerAddress) public {
         require(referrer[msg.sender] == address(0), "Cannot change referrer");
+        require(msg.sender != referrerAddress, "Cannot refer yourself");
         referrer[msg.sender] = referrerAddress;
     }
 
