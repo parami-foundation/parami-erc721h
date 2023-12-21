@@ -56,10 +56,7 @@ contract AIMePowersV5 is Ownable {
     function _calculateFeeAmount(
         uint256 amount
     ) private view returns (uint256) {
-        return
-            referrer[msg.sender] == address(0)
-                ? (amount * protocolFeePercent) / 100
-                : (amount * referrerFeePercent) / 100;
+        return amount * feePercentage() / 100;
     }
 
     function _price_curve(uint256 x) private pure returns (uint256) {
@@ -68,7 +65,7 @@ contract AIMePowersV5 is Ownable {
                 ? 0
                 : ((x - CREATOR_INIT_AMOUNT) *
                     (x) *
-                    (2 * (x - CREATOR_INIT_AMOUNT) + 1)) / 6;
+                    (2 * (x - CREATOR_INIT_AMOUNT))) / 6;
     }
 
     function getPrice(
