@@ -130,19 +130,4 @@ contract GPTMiner is Ownable {
         _addMiningToken(msg.sender, 1);
         emit MiningStarted();
     }
-
-    // function notifyRewardAmount(
-    //     uint256 reward
-    // ) external onlyOwner updateReward(address(0)) {
-    //     if (block.timestamp >= periodFinish) {
-    //         rewardRate = reward.div(DURATION);
-    //     } else {
-    //         uint256 remaining = periodFinish.sub(block.timestamp);
-    //         uint256 leftover = remaining.mul(rewardRate);
-    //         rewardRate = reward.add(leftover).div(DURATION);
-    //     }
-    //     lastUpdateTime = block.timestamp;
-    //     periodFinish = block.timestamp.add(DURATION);
-    //     emit RewardAdded(reward);
-    // }
 }
