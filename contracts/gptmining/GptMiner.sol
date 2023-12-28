@@ -20,7 +20,7 @@ contract GPTMiner is Ownable {
     constructor() {
         GPTPower powerToken = new GPTPower("GPT Power", "GPT");
         gptPowerAddress = address(powerToken);
-        powerToken.mint(address(this), 1);
+        powerToken.mint(address(this), totalReward);
     }
 
     uint256 public periodFinish = 0;
@@ -106,7 +106,7 @@ contract GPTMiner is Ownable {
         uint256 amount
     ) private updateReward(account) {
         totalSupply = totalSupply.add(amount);
-        balances[msg.sender] = balances[msg.sender].add(amount);
+        balances[account] = balances[account].add(amount);
     }
 
     // todo: change to claim reward
