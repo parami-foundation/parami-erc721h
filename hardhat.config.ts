@@ -25,8 +25,12 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
+  paths: {
+    sources: "./contracts/gptmining",
+    // other paths...
+  },
   solidity: {
-    version: "0.8.4",
+    version: "0.8.23",
     settings: {
       optimizer: {
         enabled: true,
@@ -86,7 +90,7 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.OP_API_KEY,
+    apiKey: process.env.ETHERSCAN_API_KEY,
     customChains: [
       {
         network: "scrollSepolia",
