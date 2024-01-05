@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./GPTPower.sol";
 
 contract GPTMiner is Ownable {
-    uint256 public constant DURATION = 2 days;
+    uint256 public constant DURATION = 5 days;
     uint256 public constant boostUnit = 0.001 ether;
     uint256 public constant totalReward = 1e18;
     address public gptPowerAddress;
