@@ -14,6 +14,7 @@ contract GPTMinerInscription is ERC721, Ownable {
     constructor() ERC721("GPTMiner", "GPTM") Ownable(msg.sender) {}
 
     function safeMint(address to, uint256 amount) public onlyOwner {
+        require(amount > 0, "Amount must be greater than 0");
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         tokenIdToAmount[tokenId] = amount;
@@ -21,7 +22,9 @@ contract GPTMinerInscription is ERC721, Ownable {
 
     function split(uint256 tokenId, uint256 amount) external {
         require(_ownerOf(tokenId) == msg.sender, "Not token owner");
+        require(amount > 0, "Amount must be greater than 0");
         require(tokenIdToAmount[tokenId] > amount, "Amount exceeds");
+        
         uint256 newTokenId = _nextTokenId++;
         tokenIdToAmount[tokenId] -= amount;
         _safeMint(msg.sender, newTokenId);
@@ -38,7 +41,7 @@ contract GPTMinerInscription is ERC721, Ownable {
 
         parts[
             0
-        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 180 180"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="base">';
+        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 220 220"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="base">';
 
         parts[1] = "{";
 
