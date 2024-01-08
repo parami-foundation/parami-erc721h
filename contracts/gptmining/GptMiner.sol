@@ -4,6 +4,8 @@ pragma solidity >=0.8.2 <0.9.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./GPTPower.sol";
 
 contract GPTMiner is Ownable {
@@ -44,6 +46,15 @@ contract GPTMiner is Ownable {
 
     function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
+    }
+
+    function genMessageHash(address minerAddress) public pure returns (bytes32){
+        return keccak256(abi.encodePacked("GPTMiner:", minerAddress));
+    }
+
+    function verify(address minerAddress, bytes memory _signature) public pure returns (address) {
+        bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(genMessageHash(minerAddress));
+        return ECDSA.recover(_msgHash, _signature);
     }
 
     function rewardPerToken() public view returns (uint256) {
