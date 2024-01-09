@@ -78,6 +78,7 @@ contract GPTMiner is Ownable {
     function mine(address referrer, bytes memory signature) public {
         require(rewardRate != 0, "Mining not started");
         require(balances[msg.sender] == 0, "Already mining");
+        require(block.timestamp < periodFinish, "Mining finished");
 
         // referrer checks
         require(referrer != msg.sender, "Cannot refer yourself");
@@ -110,6 +111,7 @@ contract GPTMiner is Ownable {
     }
 
     function getReward() public updateReward(msg.sender) {
+        require(block.timestamp >= periodFinish, "Mining not yet finished");
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
