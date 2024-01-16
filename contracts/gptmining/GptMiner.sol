@@ -9,9 +9,10 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./GPTMinerInscription.sol";
 
 contract GPTMiner is Ownable {
-    uint256 public constant DURATION = 5 days;
-    uint256 public constant boostUnit = 0.001 ether;
-    uint256 public constant totalReward = 1e18;
+    uint256 public constant DURATION = 7 days;
+    uint256 public constant BOOST_AMOUNT_CAP = 1 ether;
+    uint256 public constant BOOST_UNIT = 0.001 ether;
+    uint256 public constant TOTAL_REWARD = 1e18;
     address public gptMinerInscriptionAddress;
     address public signer;
 
@@ -25,9 +26,11 @@ contract GPTMiner is Ownable {
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     uint256 public totalSupply = 0; // miningTokenTotalSupply
+    
     mapping(address => uint256) public balances; // miningTokenBalances
     mapping(address => uint256) public rewards;
     mapping(address => uint256) public userRewardPerTokenPaid;
+    mapping(address => uint256) public userBoostAmount;
 
     event BoostMining(address indexed user, uint256 value, uint256 boostAmount);
     event RewardPaid(address indexed user, uint256 reward);
@@ -95,11 +98,26 @@ contract GPTMiner is Ownable {
 
     function boost() public payable {
         require(balances[msg.sender] != 0, "Call mine first");
-        require(msg.value >= boostUnit, "Insufficient payment");
+        require(msg.value >= BOOST_UNIT, "Insufficient payment");
 
-        uint256 boostAmount = msg.value / boostUnit;
-        _addMiningToken(msg.sender, boostAmount);
-        emit BoostMining(msg.sender, msg.value, boostAmount);
+        uint256 currentAmount = userBoostAmount[msg.sender];
+        userBoostAmount[msg.sender] += msg.value;
+        
+        if (currentAmount >= BOOST_AMOUNT_CAP) {
+            emit BoostMining(msg.sender, msg.value, 0);
+            return;
+        }
+
+        uint256 boostAmount;
+        if (currentAmount + msg.value > BOOST_AMOUNT_CAP) {
+            boostAmount = BOOST_AMOUNT_CAP - currentAmount;
+        } else {
+            boostAmount = msg.value;
+        }
+
+        uint256 boost = boostAmount / BOOST_UNIT;
+        _addMiningToken(msg.sender, boost);
+        emit BoostMining(msg.sender, msg.value, boost);
     }
 
     function _addMiningToken(
@@ -124,7 +142,7 @@ contract GPTMiner is Ownable {
     function startMining() external onlyOwner {
         require(signer != address(0), "Signer not set");
         require(rewardRate == 0, "Already started");
-        rewardRate = totalReward / DURATION;
+        rewardRate = TOTAL_REWARD / DURATION;
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp + DURATION;
         _addMiningToken(msg.sender, 1);
