@@ -21,11 +21,13 @@ contract GPTMiner is Ownable {
         gptMinerInscriptionAddress = address(nftContract);
     }
 
-    uint256 public periodFinish = 0;
+    uint256 public miningStart = 0;
+    uint256 public miningFinish = 0;
     uint256 public rewardRate = 0;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     uint256 public totalSupply = 0; // miningTokenTotalSupply
+    uint256 public miners = 0;
     
     mapping(address => uint256) public balances; // miningTokenBalances
     mapping(address => uint256) public rewards;
@@ -53,7 +55,7 @@ contract GPTMiner is Ownable {
     }
 
     function lastTimeRewardApplicable() public view returns (uint256) {
-        return Math.min(block.timestamp, periodFinish);
+        return Math.min(block.timestamp, miningFinish);
     }
 
     function _genMessageHash(address minerAddress) private pure returns (bytes32){
@@ -81,7 +83,7 @@ contract GPTMiner is Ownable {
     function mine(address referrer, bytes memory signature) public {
         require(rewardRate != 0, "Mining not started");
         require(balances[msg.sender] == 0, "Already mining");
-        require(block.timestamp < periodFinish, "Mining finished");
+        require(block.timestamp < miningFinish, "Mining finished");
 
         // referrer checks
         require(referrer != msg.sender, "Cannot refer yourself");
@@ -93,6 +95,7 @@ contract GPTMiner is Ownable {
 
         _addMiningToken(referrer, 1);
         _addMiningToken(msg.sender, 1);
+        miners += 1;
         emit NewMiner(msg.sender, referrer);
     }
 
@@ -115,9 +118,9 @@ contract GPTMiner is Ownable {
             boostAmount = msg.value;
         }
 
-        uint256 boost = boostAmount / BOOST_UNIT;
-        _addMiningToken(msg.sender, boost);
-        emit BoostMining(msg.sender, msg.value, boost);
+        uint256 boostMiningAmount = boostAmount / BOOST_UNIT;
+        _addMiningToken(msg.sender, boostMiningAmount);
+        emit BoostMining(msg.sender, msg.value, boostMiningAmount);
     }
 
     function _addMiningToken(
@@ -129,7 +132,7 @@ contract GPTMiner is Ownable {
     }
 
     function getReward() public updateReward(msg.sender) {
-        require(block.timestamp >= periodFinish, "Mining not yet finished");
+        require(block.timestamp >= miningFinish, "Mining not yet finished");
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
@@ -144,8 +147,10 @@ contract GPTMiner is Ownable {
         require(rewardRate == 0, "Already started");
         rewardRate = TOTAL_REWARD / DURATION;
         lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp + DURATION;
+        miningStart = block.timestamp;
+        miningFinish = block.timestamp + DURATION;
         _addMiningToken(msg.sender, 1);
+        miners += 1;
         emit MiningStarted();
     }
 }
