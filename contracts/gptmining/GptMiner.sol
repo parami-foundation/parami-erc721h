@@ -12,7 +12,7 @@ contract GPTMiner is Ownable {
     uint256 public constant DURATION = 7 days;
     uint256 public constant BOOST_AMOUNT_CAP = 1 ether;
     uint256 public constant BOOST_UNIT = 0.001 ether;
-    uint256 public constant TOTAL_REWARD = 1e18;
+    uint256 public constant TOTAL_REWARD = 1000000000 * 1e18;
     address public gptMinerInscriptionAddress;
     address public signer;
 
