@@ -10,9 +10,9 @@
     "size-contracts": "hardhat compile && hardhat size-contracts",
     "test": "hardhat test",
     "clear-cache": "rm -rf artifacts/ cache/ typechain/",
-    "deploy-goerli": "npx hardhat run --network goerli ./scripts/gptminer/deploy_gptminer.ts",
+    "deploy-sepolia": "npx hardhat run --network sepolia ./scripts/gptminer/deploy_gptminer.ts",
     "deploy-aime": "npx hardhat run --network optimism ./scripts/aime/deploy_aime.ts",
-    "verify-goerli": "npx hardhat verify --contract contracts/gptmining/GptMiner.sol:GPTMiner --network goerli",
+    "verify-sepolia": "npx hardhat verify --contract contracts/gptmining/GptMiner.sol:GPTMiner --network sepolia",
     "verify-aime": "npx hardhat verify --contract contracts/aime/AIMeV4.sol:AIMePowersV4 --network optimism"
   },
   "author": "",

@@ -63,6 +63,13 @@ const config: HardhatUserConfig = {
           ? [process.env.TESTNET_PRIVATE_KEY]
           : [],
     },
+    sepolia: {
+      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY]
+          : [],
+    },
     scrollSepolia: {
       url: "https://sepolia-rpc.scroll.io/" || "",
       accounts:
