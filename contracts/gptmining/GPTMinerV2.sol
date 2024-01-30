@@ -13,7 +13,7 @@ contract GPTMiner is Ownable {
     uint256 public constant BOOST_AMOUNT_CAP = 1 ether;
     uint256 public constant BOOST_UNIT = 0.001 ether;
     uint256 public constant TOTAL_REWARD = 1000000000 * 1e18;
-    uint256 public constant INTEL_BOOST_AMOUNT = 5;
+    uint256 public constant INTEL_BOOST_AMOUNT = 1;
     address public gptsTokenAddress;
     address public signer;
     address public receiver;
@@ -121,7 +121,7 @@ contract GPTMiner is Ownable {
 
         // validate signature
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            keccak256(abi.encodePacked("IntelBoost:", minerAddress, nonce))
+            keccak256(abi.encodePacked("IntelBoost:", msg.sender, nonce))
         );
         require(
             ECDSA.recover(_msgHash, signature) == signer,
