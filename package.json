@@ -12,7 +12,7 @@
     "clear-cache": "rm -rf artifacts/ cache/ typechain/",
     "deploy-sepolia": "npx hardhat run --network sepolia ./scripts/gptminer/deploy_gptminer.ts",
     "deploy-aime": "npx hardhat run --network optimism ./scripts/aime/deploy_aime.ts",
-    "verify-sepolia": "npx hardhat verify --contract contracts/gptmining/GptMiner.sol:GPTMiner --network sepolia",
+    "verify-sepolia": "npx hardhat verify --contract contracts/gptmining/GPTMinerV2.sol:GPTMinerV2 --network sepolia",
     "verify-aime": "npx hardhat verify --contract contracts/aime/AIMeV4.sol:AIMePowersV4 --network optimism"
   },
   "author": "",

@@ -1,12 +1,12 @@
 import { ethers } from "hardhat";
-import { GPTMiner } from "../../typechain";
+import { GPTMinerV2 } from "../../typechain";
 
-async function deployAIMeForTest(): Promise<GPTMiner> {
-  const contractFactory = await ethers.getContractFactory("GPTMiner");
+async function deployAIMeForTest(): Promise<GPTMinerV2> {
+  const contractFactory = await ethers.getContractFactory("GPTMinerV2");
   const instance = await contractFactory.deploy();
   await instance.deployed();
 
-  console.log("GPTMiner contract deployed to", instance.address);
+  console.log("GPTMinerV2 contract deployed to", instance.address);
 
   return instance;
 }

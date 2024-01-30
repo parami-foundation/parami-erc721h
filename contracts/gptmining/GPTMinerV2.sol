@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./GPTPower.sol";
 
-contract GPTMiner is Ownable {
+contract GPTMinerV2 is Ownable {
     uint256 public constant DURATION = 7 days;
     uint256 public constant BOOST_AMOUNT_CAP = 1 ether;
     uint256 public constant BOOST_UNIT = 0.001 ether;
