@@ -58,7 +58,7 @@ contract GPTMiner is Ownable {
         return Math.min(block.timestamp, miningFinish);
     }
 
-    function _genMessageHash(address minerAddress) private pure returns (bytes32){
+    function _genMessageHash(address minerAddress) private pure returns (bytes32) {
         return keccak256(abi.encodePacked("GPTMiner:", minerAddress));
     }
 

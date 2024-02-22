@@ -26,7 +26,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const config: HardhatUserConfig = {
   paths: {
-    sources: "./contracts/gptmining",
+    sources: "./contracts/aime",
     // other paths...
   },
   solidity: {

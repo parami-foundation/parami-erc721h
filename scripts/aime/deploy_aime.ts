@@ -1,12 +1,12 @@
 import { ethers } from "hardhat";
-import { AIMePowersV5 } from "../../typechain";
+import { AIMeFactory } from "../../typechain";
 
-async function deployAIMeForTest(): Promise<AIMePowersV5> {
-  const contractFactory = await ethers.getContractFactory("AIMePowersV5");
+async function deployAIMeForTest(): Promise<AIMeFactory> {
+  const contractFactory = await ethers.getContractFactory("AIMeFactory");
   const instance = await contractFactory.deploy();
   await instance.deployed();
 
-  console.log("AIMe V5 contract deployed to", instance.address);
+  console.log("AIMeFactory V0 contract deployed to", instance.address);
 
   return instance;
 }
