@@ -12,6 +12,8 @@
     "clear-cache": "rm -rf artifacts/ cache/ typechain/",
     "deploy-sepolia": "npx hardhat run --network sepolia ./scripts/gptminer/deploy_gptminer.ts",
     "deploy-aime": "npx hardhat run --network sepolia ./scripts/aime/deploy_aime.ts",
+    "deploy-nft": "npx hardhat run --network sepolia ./scripts/aime/deploy_test.ts",
+    "verify-nft": "npx hardhat verify --contract contracts/aime/MockNFT.sol:MockNFT --network sepolia",
     "verify-sepolia": "npx hardhat verify --contract contracts/gptmining/GPTMinerV2.sol:GPTMinerV2 --network sepolia",
     "verify-aime": "npx hardhat verify --contract contracts/aime/AIMeFactory.sol:AIMeFactory --network sepolia"
   },

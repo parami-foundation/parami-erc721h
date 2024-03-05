@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1_000_000,
+        runs: 200,
       },
       metadata: {
         bytecodeHash: "none",
@@ -51,6 +51,13 @@ const config: HardhatUserConfig = {
     },
     optimism: {
       url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY_AIME_TEST !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY_AIME_TEST]
+          : [],
+    },
+    optimismSepolia: {
+      url: `https://optimism-sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts:
         process.env.TESTNET_PRIVATE_KEY_AIME_TEST !== undefined
           ? [process.env.TESTNET_PRIVATE_KEY_AIME_TEST]
@@ -105,6 +112,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://sepolia-blockscout.scroll.io/api",
           browserURL: "https://sepolia-blockscout.scroll.io/",
+        },
+      },
+      {
+        network: "optimismSepolia",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://sepolia-optimism.etherscan.io/api",
+          browserURL: "https://sepolia-optimism.etherscan.io/",
         },
       },
     ],

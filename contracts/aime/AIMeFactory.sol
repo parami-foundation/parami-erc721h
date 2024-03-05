@@ -28,8 +28,10 @@ contract AIMeFactory is Ownable {
         string content
     );
 
+    // todo: change this
     mapping(address => address) public aimeContracts;
     mapping(address => mapping(uint256 => bool)) public addressNonceUsed;
+    mapping(address => uint256) public addressNonce;
 
     function updateSigner(address _signer) external onlyOwner {
         signer = _signer;
@@ -61,23 +63,22 @@ contract AIMeFactory is Ownable {
     function createAIME(
         string memory name_,
         string memory symbol_,
+        string memory avatar_,
         string memory bio_,
+        string memory bio_image_,
         uint256 nonce,
-        bytes memory signature
+        bytes memory signature,
+        uint256 creatorRewardAmount
     ) public returns (address) {
-        require(
-            aimeContracts[msg.sender] == address(0),
-            "AIME already created"
-        );
         // todo: validate signature
-        // todo: require nonce not used
+        // todo: require nonce = currentNonce
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
             _genMessageHash(msg.sender, msg.sender, "basic_prompt", "static", bio_, 0, nonce)
         );
         // require(signer != address(0) && ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
-        // todo: nonce used
+        // todo: nonce++
 
-        AIMeNFT aime = new AIMeNFT(name_, symbol_, bio_);
+        AIMeNFT aime = new AIMeNFT(name_, symbol_, avatar_, bio_, bio_image_, msg.sender, creatorRewardAmount);
         aimeContracts[msg.sender] = address(aime);
         emit AIMeCreated(msg.sender, address(aime));
         return address(aime);
@@ -88,20 +89,21 @@ contract AIMeFactory is Ownable {
         string memory key,
         string memory infoType,
         string memory content,
+        string memory image,
         uint256 amount,
         uint256 nonce,
         bytes memory signature
     ) public {
         // todo: validate signature
-        // todo: require nonce not used
+        // todo: require nonce = currentNonce
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
             _genMessageHash(msg.sender, aimeAddress, key, infoType, content, amount, nonce)
         );
         // require(signer != address(0) && ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
-        // todo: nonce used
+        // todo: nonce++
 
         AIMeNFT aime = AIMeNFT(aimeAddress);
-        uint256 tokenId = aime.safeMint(msg.sender, key, infoType, content, amount);
+        uint256 tokenId = aime.safeMint(msg.sender, key, infoType, content, image, amount);
         emit AIMeNFTMinted(
             msg.sender,
             aimeAddress,

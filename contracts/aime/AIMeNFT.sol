@@ -10,12 +10,19 @@ import "./AIMePower.sol";
 
 contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
+    uint256 public CREATOR_REWARD_AMOUNT;
     uint256 public aimePowerReserved;
     address public aimePowerAddress;
+    string public avatar;
     address private _factory;
     using Strings for uint256;
     uint256 private _nextTokenId;
     mapping(uint256 => AIMeInfo) public tokenContents;
+
+    string private svg_head = '<svg width="640" height="640" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">';
+    string private svg_style = '<style>.power-amount {font-size: 16px;fill: #EAFD53;font-weight: bold;} .aime-name {font-size: 18px; fill: white; font-weight: bold;} .nft-content {font-size: 18px;fill: white;}</style>';
+    string private svg_defs = '<defs><clipPath id="circleClip"><circle cx="40" cy="536" r="20"/></clipPath></defs>';
+    string private svg_end = '</svg>';
 
     error AIMeNFTUnauthorizedAccount(address account);
 
@@ -30,24 +37,32 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         string key;
         string infoType;
         string content;
+        string image;
         uint256 amount;
     }
 
     constructor(
         string memory name_,
         string memory symbol_,
-        string memory bio_
+        string memory avatar_,
+        string memory bio_,
+        string memory bioImage_,
+        address sender,
+        uint256 creatorRewardAmount
     ) ERC721(name_, symbol_) Ownable(msg.sender) {
+        require(creatorRewardAmount > 0 && creatorRewardAmount <= AIME_POWER_TOTAL_AMOUNT, "Creator Reward Amount out of bound.");
         _factory = _msgSender();
 
         AIMePower aimePower = new AIMePower(name_, symbol_);
-        aimePower.mint(address(this), AIME_POWER_TOTAL_AMOUNT);
-        aimePowerReserved = AIME_POWER_TOTAL_AMOUNT;
+        aimePower.mint(address(this), creatorRewardAmount);
+        aimePower.mint(sender, AIME_POWER_TOTAL_AMOUNT - creatorRewardAmount);
+        aimePowerReserved = creatorRewardAmount;
         aimePowerAddress = address(aimePower);
-
+        
+        avatar = avatar_;
+        
         // mint initial nfts
-        safeMint(address(this), "static", "name", name_, 0);
-        safeMint(address(this), "static", "bio", bio_, 0);
+        safeMint(address(this), "basic_prompt", "static", bio_, bioImage_, 0);
     }
 
     function factory() public view virtual returns (address) {
@@ -59,11 +74,12 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         string memory key,
         string memory infoType,
         string memory content,
+        string memory image,
         uint256 amount
     ) public onlyFactory returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
-        tokenContents[tokenId] = AIMeInfo(key, infoType, content, amount);
+        tokenContents[tokenId] = AIMeInfo(key, infoType, content, image, amount);
         aimePowerReserved -= amount;
         return tokenId;
     }
@@ -105,41 +121,54 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     ) public view virtual override returns (string memory) {
         _requireOwned(tokenId);
 
-        string[9] memory parts;
+        string[15] memory parts;
 
-        parts[
-            0
-        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 420 420"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="base">';
-
-        parts[1] = "{";
-
-        parts[2] = '</text><text x="30" y="40" class="base">"';
-
-        parts[3] = tokenContents[tokenId].infoType;
-
-        parts[4] = '": "';
-
-        parts[5] = tokenContents[tokenId].content;
-
-        parts[6] = '"</text><text x="10" y="60" class="base">';
-
-        parts[7] = "}";
-
-        parts[8] = "</text></svg>";
+        parts[0] = '<image x="0" y="0" width="640" height="640" xlink:href="';
+        parts[1] = tokenContents[tokenId].image;
+        parts[2] = '" /><rect x="0" y="0" width="640" height="640" fill="black" opacity="0.3"/><text x="27" y="40" class="power-amount">';
+        parts[3] = tokenContents[tokenId].amount.toString();
+        parts[4] = ' ';
+        parts[5] = name();
+        parts[6] = ' Power</text><image x="20" y="516" width="40" height="40" xlink:href="';
+        parts[7] = avatar;
+        parts[8] = '" clip-path="url(#circleClip)" /><text x="75" y="542" class="aime-name">';
+        parts[9] = name();
+        parts[10] = '</text><text x="20" y="582" class="nft-content">';
+        parts[11] = tokenContents[tokenId].key;
+        parts[12] = ': ';
+        parts[13] = tokenContents[tokenId].content;
+        parts[14] = '</text>';
 
         string memory output = string(
             abi.encodePacked(
+                svg_head,
+                svg_style,
+                svg_defs,
                 parts[0],
                 parts[1],
                 parts[2],
                 parts[3],
-                parts[4],
+                parts[4]
+            )
+        );
+        output = string(abi.encodePacked(
+                output, 
                 parts[5],
                 parts[6],
                 parts[7],
-                parts[8]
-            )
-        );
+                parts[8],
+                parts[9],
+                parts[10]
+                ));
+
+        output = string(abi.encodePacked(
+                output, 
+                parts[11],
+                parts[12],
+                parts[13],
+                parts[14],
+                svg_end
+                ));
 
         string memory json = Base64.encode(
             bytes(
