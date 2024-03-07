@@ -1,12 +1,18 @@
 import { ethers } from "hardhat";
-import { MockNFT } from "../../typechain";
+import { AIMe404Power } from "../../typechain";
 
-async function deployMockNFTForTest(): Promise<MockNFT> {
-  const contractFactory = await ethers.getContractFactory("MockNFT");
+async function deployMockNFTForTest(): Promise<AIMe404Power> {
+  // const contractFactory = await ethers.getContractFactory("MockNFT");
+  // const instance = await contractFactory.deploy();
+  // await instance.deployed();
+
+  // console.log("MockNFT deployed to", instance.address);
+
+  const contractFactory = await ethers.getContractFactory("AIMe404Power");
   const instance = await contractFactory.deploy();
   await instance.deployed();
 
-  console.log("MockNFT deployed to", instance.address);
+  console.log("AIMe404Power deployed to", instance.address);
 
   return instance;
 }

@@ -19,11 +19,6 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     uint256 private _nextTokenId;
     mapping(uint256 => AIMeInfo) public tokenContents;
 
-    string private svg_head = '<svg width="640" height="640" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">';
-    string private svg_style = '<style>.power-amount {font-size: 16px;fill: #EAFD53;font-weight: bold;} .aime-name {font-size: 18px; fill: white; font-weight: bold;} .nft-content {font-size: 18px;fill: white;}</style>';
-    string private svg_defs = '<defs><clipPath id="circleClip"><circle cx="40" cy="536" r="20"/></clipPath></defs>';
-    string private svg_end = '</svg>';
-
     error AIMeNFTUnauthorizedAccount(address account);
 
     modifier onlyFactory() {
@@ -121,54 +116,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     ) public view virtual override returns (string memory) {
         _requireOwned(tokenId);
 
-        string[15] memory parts;
-
-        parts[0] = '<image x="0" y="0" width="640" height="640" xlink:href="';
-        parts[1] = tokenContents[tokenId].image;
-        parts[2] = '" /><rect x="0" y="0" width="640" height="640" fill="black" opacity="0.3"/><text x="27" y="40" class="power-amount">';
-        parts[3] = tokenContents[tokenId].amount.toString();
-        parts[4] = ' ';
-        parts[5] = name();
-        parts[6] = ' Power</text><image x="20" y="516" width="40" height="40" xlink:href="';
-        parts[7] = avatar;
-        parts[8] = '" clip-path="url(#circleClip)" /><text x="75" y="542" class="aime-name">';
-        parts[9] = name();
-        parts[10] = '</text><text x="20" y="582" class="nft-content">';
-        parts[11] = tokenContents[tokenId].key;
-        parts[12] = ': ';
-        parts[13] = tokenContents[tokenId].content;
-        parts[14] = '</text>';
-
-        string memory output = string(
-            abi.encodePacked(
-                svg_head,
-                svg_style,
-                svg_defs,
-                parts[0],
-                parts[1],
-                parts[2],
-                parts[3],
-                parts[4]
-            )
-        );
-        output = string(abi.encodePacked(
-                output, 
-                parts[5],
-                parts[6],
-                parts[7],
-                parts[8],
-                parts[9],
-                parts[10]
-                ));
-
-        output = string(abi.encodePacked(
-                output, 
-                parts[11],
-                parts[12],
-                parts[13],
-                parts[14],
-                svg_end
-                ));
+        string memory imageUrl = tokenContents[tokenId].image;
 
         string memory json = Base64.encode(
             bytes(
@@ -180,16 +128,16 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
                         tokenId.toString(),
                         '", "description": "A block of content of AIME ',
                         name(),
-                        '", "amount": "',
+                        '. Go to https://app.aime.bot", "amount": "',
                         tokenContents[tokenId].amount.toString(),
-                        '", "image": "data:image/svg+xml;base64,',
-                        Base64.encode(bytes(output)),
+                        '", "image": "',
+                        imageUrl,
                         '"}'
                     )
                 )
             )
         );
-        output = string(
+        string memory output = string(
             abi.encodePacked("data:application/json;base64,", json)
         );
 

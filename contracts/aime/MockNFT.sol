@@ -36,22 +36,22 @@ contract MockNFT is ERC721 {
     function tokenURI(
         uint256 tokenId
     ) public view virtual override returns (string memory) {
-        string memory url = string(abi.encodePacked(
-            "https://aime.mypinata.cloud/ipfs/", viewer,
-            "?image=", tokenContents[tokenId].image,
-            "&amount=", tokenContents[tokenId].amount,
-            "&name=", name()
-        ));
+        // string memory url = string(abi.encodePacked(
+        //     "https://aime.mypinata.cloud/ipfs/", viewer,
+        //     "?image=", tokenContents[tokenId].image,
+        //     "&amount=", tokenContents[tokenId].amount,
+        //     "&name=", name()
+        // ));
         string memory imageUrl = string(abi.encodePacked(
             "https://aime.mypinata.cloud/ipfs/", tokenContents[tokenId].image
         ));
 
-        url = string(abi.encodePacked(
-            url,
-            "&content=", tokenContents[tokenId].content,
-            "&key=", tokenContents[tokenId].key,
-            "&avatar=", avatar
-        ));
+        // url = string(abi.encodePacked(
+        //     url,
+        //     "&content=", tokenContents[tokenId].content,
+        //     "&key=", tokenContents[tokenId].key,
+        //     "&avatar=", avatar
+        // ));
         
         string memory json = Base64.encode(
             bytes(
@@ -59,11 +59,11 @@ contract MockNFT is ERC721 {
                     abi.encodePacked(
                         '{"name": "NFT Test #',
                         tokenId.toString(),
-                        '", "description": "A block of content of AIME",',
+                        '", "description": "A block of content of AIME go to https://app.aime.bot",',
                         '"image": "',
                         imageUrl,
                         '", "animation_url": "',
-                        url,
+                        imageUrl,
                         '"}'
                     )
                 )
