@@ -6,11 +6,9 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./AIMePower.sol";
 
 contract AIMeNFT is ERC721, Ownable, ERC721Holder {
-    using SafeMath for uint256;
     address public protocolFeeDestination;
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
     uint256 public CREATOR_REWARD_AMOUNT;
