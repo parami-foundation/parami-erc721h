@@ -6,9 +6,12 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./AIMePower.sol";
 
 contract AIMeNFT is ERC721, Ownable, ERC721Holder {
+    using SafeMath for uint256;
+    address public protocolFeeDestination;
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
     uint256 public CREATOR_REWARD_AMOUNT;
     uint256 public aimePowerReserved;
@@ -18,8 +21,18 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     using Strings for uint256;
     uint256 private _nextTokenId;
     mapping(uint256 => AIMeInfo) public tokenContents;
+    uint8 public constant protocolFeePercent = 5; // 5%
+    uint256 public powersSupply;
 
     error AIMeNFTUnauthorizedAccount(address account);
+    event Trade(
+        address trader,
+        bool isBuy,
+        uint256 powerAmount,
+        uint256 priceAfterFee,
+        uint256 fee,
+        uint256 supply
+    );
 
     modifier onlyFactory() {
         if (factory() != _msgSender()) {
@@ -50,11 +63,14 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
 
         AIMePower aimePower = new AIMePower(name_, symbol_);
         aimePower.mint(address(this), creatorRewardAmount);
-        aimePower.mint(sender, AIME_POWER_TOTAL_AMOUNT - creatorRewardAmount);
+        // todo: mint tokens to creator?
+        // aimePower.mint(sender, AIME_POWER_TOTAL_AMOUNT - creatorRewardAmount);
         aimePowerReserved = creatorRewardAmount;
         aimePowerAddress = address(aimePower);
         
         avatar = avatar_;
+
+        powersSupply = 0;
         
         // mint initial nfts
         safeMint(address(this), "basic_prompt", "static", bio_, bioImage_, 0);
@@ -62,6 +78,123 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
 
     function factory() public view virtual returns (address) {
         return _factory;
+    }
+
+    function setFeeDestination(address _feeDestination) public onlyFactory() {
+        protocolFeeDestination = _feeDestination;
+    }
+
+    function _calculateFeeAmount(
+        uint256 amount
+    ) private view returns (uint256) {
+        return amount * protocolFeePercent / 100;
+    }
+
+    function _price_curve(uint256 x) private pure returns (uint256) {
+        // todo: change to a better curve
+        return x <= 0 ? 0 : (x * x / 1e18) * x / 3;
+    }
+
+    function getPrice(
+        uint256 supply,
+        uint256 amount
+    ) public pure returns (uint256) {
+        return
+            ((_price_curve(supply + amount) - _price_curve(supply)) * 1 ether) /
+            160000 /
+            1e18 /
+            1e18;
+    }
+
+    function getBuyPrice(
+        uint256 amount
+    ) public view returns (uint256) {
+        return getPrice(powersSupply, amount);
+    }
+
+    function getSellPrice(
+        uint256 amount
+    ) public view returns (uint256) {
+        return getPrice(powersSupply - amount, amount);
+    }
+
+    function getBuyPriceAfterFee(
+        uint256 amount
+    ) public view returns (uint256) {
+        uint256 feeAmount = _calculateFeeAmount(amount);
+        uint256 price = getBuyPrice(amount + feeAmount);
+        return price;
+    }
+
+    function getSellPriceAfterFee(
+        uint256 amount
+    ) public view returns (uint256) {
+        uint256 feeAmount = _calculateFeeAmount(amount);
+        uint256 price = getSellPrice(amount - feeAmount);
+        return price;
+    }
+
+    function buyPowers(uint256 amount) public payable {
+        require(amount > 0, "Amount must be greater than 0");
+        uint256 feeAmount = _calculateFeeAmount(amount);
+        uint256 price = getBuyPrice(amount);
+        uint256 priceAfterFee = getBuyPrice(amount + feeAmount);
+        uint256 fee = priceAfterFee - price;
+        
+        require(msg.value >= priceAfterFee, "Insufficient payment");
+
+        // transfer power to user
+        AIMePower power = AIMePower(aimePowerAddress);
+        power.transfer(msg.sender, amount);
+        aimePowerReserved -= amount;
+        powersSupply += amount;
+
+        // transfer fee to protocol
+        (bool success, ) = protocolFeeDestination.call{value: fee}("");
+        require(success, "Unable to send funds");
+
+        emit Trade(
+            msg.sender,
+            true,
+            amount,
+            priceAfterFee,
+            fee,
+            powersSupply
+        );
+    }
+
+    function sellPowers(uint256 amount) public {
+        require(powersSupply >= amount, 'pool run out');
+
+        uint256 feeAmount = _calculateFeeAmount(amount);
+        uint256 priceAfterFee = getSellPrice(amount - feeAmount);
+        uint256 price = getSellPrice(amount);
+        uint256 fee = price - priceAfterFee;
+        
+        // transfer power from user
+        AIMePower power = AIMePower(aimePowerAddress);
+        require(power.balanceOf(msg.sender) >= amount, "balance not enough");
+        require(power.allowance(msg.sender, address(this)) >= amount, "allowance not enough");
+        power.transferFrom(msg.sender, address(this), amount);
+        powersSupply -= amount;
+        aimePowerReserved += amount;
+
+        // transfer eth to user
+        (bool success1, ) = msg.sender.call{value: priceAfterFee}("");
+        require(success1, "Unable to send funds");
+
+        // transfer fee to protocol
+        (bool success2, ) = protocolFeeDestination.call{value: fee}("");
+        require(success2, "Unable to send funds");
+
+        emit Trade(
+            msg.sender,
+            false,
+            amount,
+            priceAfterFee,
+            fee,
+            powersSupply
+        );
     }
 
     function safeMint(
