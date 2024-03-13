@@ -11,6 +11,7 @@ import "./AIMePower.sol";
 contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     address public protocolFeeDestination;
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
+    uint256 public constant AIME_NFT_PRICE_FACTOR = 12;
     uint256 public CREATOR_REWARD_AMOUNT;
     uint256 public aimePowerReserved;
     address public aimePowerAddress;
@@ -32,6 +33,13 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         uint256 supply
     );
 
+    event TradeNFT(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 price
+    );
+
     modifier onlyFactory() {
         if (factory() != _msgSender()) {
             revert AIMeNFTUnauthorizedAccount(_msgSender());
@@ -41,10 +49,11 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
 
     struct AIMeInfo {
         string key;
-        string infoType;
-        string content;
+        string dataType;
+        string data;
         string image;
         uint256 amount;
+        uint256 currentAmount;
     }
 
     constructor(
@@ -52,7 +61,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         string memory symbol_,
         string memory avatar_,
         string memory bio_,
-        string memory bioImage_,
+        string memory image_,
         address sender,
         uint256 creatorRewardAmount
     ) ERC721(name_, symbol_) Ownable(msg.sender) {
@@ -60,6 +69,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         _factory = _msgSender();
 
         AIMePower aimePower = new AIMePower(name_, symbol_);
+        CREATOR_REWARD_AMOUNT = creatorRewardAmount;
         aimePower.mint(address(this), creatorRewardAmount);
         // todo: mint tokens to creator?
         // aimePower.mint(sender, AIME_POWER_TOTAL_AMOUNT - creatorRewardAmount);
@@ -67,11 +77,10 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         aimePowerAddress = address(aimePower);
         
         avatar = avatar_;
-
         powersSupply = 0;
         
         // mint initial nfts
-        safeMint(address(this), "basic_prompt", "static", bio_, bioImage_, 0);
+        safeMint(address(this), "basic_prompt", "static", bio_, image_, 0);
     }
 
     function factory() public view virtual returns (address) {
@@ -198,14 +207,14 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     function safeMint(
         address to,
         string memory key,
-        string memory infoType,
-        string memory content,
+        string memory dataType,
+        string memory data,
         string memory image,
         uint256 amount
     ) public onlyFactory returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
-        tokenContents[tokenId] = AIMeInfo(key, infoType, content, image, amount);
+        tokenContents[tokenId] = AIMeInfo(key, dataType, data, image, amount, amount);
         aimePowerReserved -= amount;
         return tokenId;
     }
@@ -213,33 +222,41 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     function updateAIMeInfo(
         uint256 tokenId,
         address owner,
-        string memory content
+        string memory data
     ) public onlyFactory {
         address tokenOwner = _ownerOf(tokenId);
         require(
             tokenOwner == owner && owner != address(0),
             "Invalid token owner"
         );
-        tokenContents[tokenId].content = content;
+        tokenContents[tokenId].data = data;
     }
 
-    function sellToken(uint256 tokenId) external {
+    function sellNFT(uint256 tokenId) external {
         _safeTransfer(msg.sender, address(this), tokenId);
         
         AIMePower power = AIMePower(aimePowerAddress);
         power.transfer(msg.sender, tokenContents[tokenId].amount);
-        // todo: event
+        emit TradeNFT(msg.sender, address(this), tokenId, tokenContents[tokenId].amount);
     }
     
-    function buyToken(uint256 tokenId) external {
+    function buyNFT(uint256 tokenId) external {
         AIMePower power = AIMePower(aimePowerAddress);
-        uint256 amount = tokenContents[tokenId].amount;
+        address owner = _requireOwned(tokenId);
+        uint256 amount;
+        if (owner == address(this)) {
+            amount = tokenContents[tokenId].amount;
+        } else {
+            amount = tokenContents[tokenId].currentAmount * AIME_NFT_PRICE_FACTOR / 10;
+            tokenContents[tokenId].currentAmount = amount;
+        }
+
         require(power.balanceOf(msg.sender) >= amount, "balance not enough");
         require(power.allowance(msg.sender, address(this)) >= amount, "allowance not enough");
-        power.transferFrom(msg.sender, address(this), amount);
-        
-        _safeTransfer(address(this), msg.sender, tokenId);
-        // todo: event
+        power.transferFrom(msg.sender, owner, amount);
+
+        _safeTransfer(owner, msg.sender, tokenId);
+        emit TradeNFT(owner, msg.sender, tokenId, amount);
     }
 
     function tokenURI(
@@ -249,6 +266,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
 
         string memory imageUrl = tokenContents[tokenId].image;
 
+        // todo: add traits
         string memory json = Base64.encode(
             bytes(
                 string(
@@ -259,7 +277,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
                         tokenId.toString(),
                         '", "description": "A block of content of AIME ',
                         name(),
-                        '. Go to https://app.aime.bot/',address(this), '/', tokenId.toString(), '", "amount": "',
+                        '. Go to https://app.aime.bot/chat/',address(this), '/', tokenId.toString(), '", "amount": "',
                         tokenContents[tokenId].amount.toString(),
                         '", "image": "',
                         imageUrl,
