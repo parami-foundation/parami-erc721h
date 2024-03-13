@@ -222,7 +222,8 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     function updateAIMeInfo(
         uint256 tokenId,
         address owner,
-        string memory data
+        string memory data,
+        string memory image
     ) public onlyFactory {
         address tokenOwner = _ownerOf(tokenId);
         require(
@@ -230,6 +231,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
             "Invalid token owner"
         );
         tokenContents[tokenId].data = data;
+        tokenContents[tokenId].image = image;
     }
 
     function sellNFT(uint256 tokenId) external {

@@ -18,19 +18,16 @@ contract AIMeFactory is Ownable {
         uint256 tokenId,
         string key,
         string infoType,
-        string content,
+        string data,
         uint256 amount
     );
     event AIMeNFTUpdated(
         address nftOwner,
         address aimeAddress,
         uint256 tokenId,
-        string content
+        string data
     );
 
-    // todo: change this
-    mapping(address => address) public aimeContracts;
-    mapping(address => mapping(uint256 => bool)) public addressNonceUsed;
     mapping(address => uint256) public addressNonce;
 
     function updateSigner(address _signer) external onlyOwner {
@@ -41,8 +38,10 @@ contract AIMeFactory is Ownable {
         address creatorAddress,
         address aimeAddress,
         string memory key,
-        string memory infoType,
-        string memory content,
+        string memory dataType,
+        string memory data,
+        string memory avatar,
+        string memory image,
         uint256 amount,
         uint256 nonce
     ) private pure returns (bytes32) {
@@ -52,9 +51,32 @@ contract AIMeFactory is Ownable {
                     creatorAddress,
                     aimeAddress,
                     key,
-                    infoType,
-                    content,
+                    dataType,
+                    data,
+                    avatar,
+                    image,
                     amount,
+                    nonce
+                )
+            );
+    }
+
+    function _genMessageHashForUpdate(
+        address creatorAddress,
+        address aimeAddress,
+        uint256 tokenId,
+        string memory data,
+        string memory image,
+        uint256 nonce
+    ) private pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    creatorAddress,
+                    aimeAddress,
+                    tokenId,
+                    data,
+                    image,
                     nonce
                 )
             );
@@ -65,21 +87,18 @@ contract AIMeFactory is Ownable {
         string memory symbol_,
         string memory avatar_,
         string memory bio_,
-        string memory bio_image_,
-        uint256 nonce,
+        string memory image_,
         bytes memory signature,
         uint256 creatorRewardAmount
     ) public returns (address) {
         // todo: validate signature
-        // todo: require nonce = currentNonce
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            _genMessageHash(msg.sender, msg.sender, "basic_prompt", "static", bio_, 0, nonce)
+            _genMessageHash(msg.sender, msg.sender, "basic_prompt", "static", bio_, avatar_, image_, 0, addressNonce[msg.sender])
         );
         // require(signer != address(0) && ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
-        // todo: nonce++
+        addressNonce[msg.sender] += 1;
 
-        AIMeNFT aime = new AIMeNFT(string(abi.encodePacked("AIME:", name_)), symbol_, avatar_, bio_, bio_image_, msg.sender, creatorRewardAmount);
-        aimeContracts[msg.sender] = address(aime);
+        AIMeNFT aime = new AIMeNFT(string(abi.encodePacked("AIME:", name_)), symbol_, avatar_, bio_, image_, msg.sender, creatorRewardAmount);
         emit AIMeCreated(msg.sender, address(aime));
         return address(aime);
     }
@@ -87,30 +106,28 @@ contract AIMeFactory is Ownable {
     function mintAIMeNFT(
         address aimeAddress,
         string memory key,
-        string memory infoType,
-        string memory content,
+        string memory dataType,
+        string memory data,
         string memory image,
         uint256 amount,
-        uint256 nonce,
         bytes memory signature
     ) public {
         // todo: validate signature
-        // todo: require nonce = currentNonce
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            _genMessageHash(msg.sender, aimeAddress, key, infoType, content, amount, nonce)
+            _genMessageHash(msg.sender, aimeAddress, key, dataType, data, "", image, amount, addressNonce[msg.sender])
         );
         // require(signer != address(0) && ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
-        // todo: nonce++
+        addressNonce[msg.sender] += 1;
 
         AIMeNFT aime = AIMeNFT(aimeAddress);
-        uint256 tokenId = aime.safeMint(msg.sender, key, infoType, content, image, amount);
+        uint256 tokenId = aime.safeMint(msg.sender, key, dataType, data, image, amount);
         emit AIMeNFTMinted(
             msg.sender,
             aimeAddress,
             tokenId,
             key,
-            infoType,
-            content,
+            dataType,
+            data,
             amount
         );
     }
@@ -118,11 +135,17 @@ contract AIMeFactory is Ownable {
     function updateAIMeNFT(
         address aimeAddress,
         uint256 tokenId,
-        string memory content
+        string memory data,
+        string memory image,
+        bytes memory signature
     ) public {
-        // todo: check all args and signature
+        // todo: validate signature
+        bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
+            _genMessageHashForUpdate(msg.sender, aimeAddress, tokenId, data, image, addressNonce[msg.sender])
+        );
+        addressNonce[msg.sender] += 1;
         AIMeNFT aime = AIMeNFT(aimeAddress);
-        aime.updateAIMeInfo(tokenId, msg.sender, content);
-        emit AIMeNFTUpdated(msg.sender, aimeAddress, tokenId, content);
+        aime.updateAIMeInfo(tokenId, msg.sender, data, image);
+        emit AIMeNFTUpdated(msg.sender, aimeAddress, tokenId, data);
     }
 }
