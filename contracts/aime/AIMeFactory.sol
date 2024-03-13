@@ -78,7 +78,7 @@ contract AIMeFactory is Ownable {
         // require(signer != address(0) && ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
         // todo: nonce++
 
-        AIMeNFT aime = new AIMeNFT(name_, symbol_, avatar_, bio_, bio_image_, msg.sender, creatorRewardAmount);
+        AIMeNFT aime = new AIMeNFT(string(abi.encodePacked("AIME:", name_)), symbol_, avatar_, bio_, bio_image_, msg.sender, creatorRewardAmount);
         aimeContracts[msg.sender] = address(aime);
         emit AIMeCreated(msg.sender, address(aime));
         return address(aime);

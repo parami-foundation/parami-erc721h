@@ -230,7 +230,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         power.transfer(msg.sender, tokenContents[tokenId].amount);
         // todo: event
     }
-
+    
     function buyToken(uint256 tokenId) external {
         AIMePower power = AIMePower(aimePowerAddress);
         uint256 amount = tokenContents[tokenId].amount;
@@ -259,7 +259,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
                         tokenId.toString(),
                         '", "description": "A block of content of AIME ',
                         name(),
-                        '. Go to https://app.aime.bot", "amount": "',
+                        '. Go to https://app.aime.bot/',address(this), '/', tokenId.toString(), '", "amount": "',
                         tokenContents[tokenId].amount.toString(),
                         '", "image": "',
                         imageUrl,
