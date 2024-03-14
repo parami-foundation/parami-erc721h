@@ -7,7 +7,8 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract AIMeFactory is Ownable {
-    address public signer;
+    address public aimeSigner;
+    uint256 public protocolFee = 0.001 ether;
 
     constructor() Ownable(msg.sender) {}
 
@@ -31,12 +32,17 @@ contract AIMeFactory is Ownable {
     mapping(address => uint256) public addressNonce;
 
     function updateSigner(address _signer) external onlyOwner {
-        signer = _signer;
+        aimeSigner = _signer;
+    }
+
+    function updateProtocolFee(uint256 _fee) external onlyOwner {
+        protocolFee = _fee;
     }
 
     function _genMessageHash(
         address creatorAddress,
         address aimeAddress,
+        string memory aimeName,
         string memory key,
         string memory dataType,
         string memory data,
@@ -50,6 +56,7 @@ contract AIMeFactory is Ownable {
                 abi.encodePacked(
                     creatorAddress,
                     aimeAddress,
+                    aimeName,
                     key,
                     dataType,
                     data,
@@ -90,17 +97,16 @@ contract AIMeFactory is Ownable {
         string memory image_,
         bytes memory signature,
         uint256 creatorRewardAmount
-    ) public returns (address) {
-        // todo: validate signature
+    ) public payable {
+        require(msg.value >= protocolFee, "Insufficient payment");
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            _genMessageHash(msg.sender, msg.sender, "basic_prompt", "static", bio_, avatar_, image_, 0, addressNonce[msg.sender])
+            _genMessageHash(msg.sender, msg.sender, name_, "basic_prompt", "static", bio_, avatar_, image_, 0, addressNonce[msg.sender])
         );
-        // require(signer != address(0) && ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
+        require(aimeSigner != address(0) && ECDSA.recover(_msgHash, signature) == aimeSigner, "Invalid signature");
         addressNonce[msg.sender] += 1;
 
         AIMeNFT aime = new AIMeNFT(string(abi.encodePacked("AIME:", name_)), symbol_, avatar_, bio_, image_, msg.sender, creatorRewardAmount);
         emit AIMeCreated(msg.sender, address(aime));
-        return address(aime);
     }
 
     function mintAIMeNFT(
@@ -111,12 +117,12 @@ contract AIMeFactory is Ownable {
         string memory image,
         uint256 amount,
         bytes memory signature
-    ) public {
-        // todo: validate signature
+    ) public payable {
+        require(msg.value >= protocolFee, "Insufficient payment");
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            _genMessageHash(msg.sender, aimeAddress, key, dataType, data, "", image, amount, addressNonce[msg.sender])
+            _genMessageHash(msg.sender, aimeAddress, "", key, dataType, data, "", image, amount, addressNonce[msg.sender])
         );
-        // require(signer != address(0) && ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
+        require(aimeSigner != address(0) && ECDSA.recover(_msgHash, signature) == aimeSigner, "Invalid signature");
         addressNonce[msg.sender] += 1;
 
         AIMeNFT aime = AIMeNFT(aimeAddress);
@@ -138,14 +144,21 @@ contract AIMeFactory is Ownable {
         string memory data,
         string memory image,
         bytes memory signature
-    ) public {
-        // todo: validate signature
+    ) public payable {
+        require(msg.value >= protocolFee, "Insufficient payment");
         bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
             _genMessageHashForUpdate(msg.sender, aimeAddress, tokenId, data, image, addressNonce[msg.sender])
         );
+        require(aimeSigner != address(0) && ECDSA.recover(_msgHash, signature) == aimeSigner, "Invalid signature");
         addressNonce[msg.sender] += 1;
         AIMeNFT aime = AIMeNFT(aimeAddress);
         aime.updateAIMeInfo(tokenId, msg.sender, data, image);
         emit AIMeNFTUpdated(msg.sender, aimeAddress, tokenId, data);
+    }
+
+    function withdrawFee() public onlyOwner {
+        uint amount = address(this).balance;
+        (bool success, ) = owner().call{value: amount}("");
+        require(success, "Failed to send Ether");
     }
 }

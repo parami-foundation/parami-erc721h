@@ -7,6 +7,6 @@
     "outDir": "dist",
     "declaration": true
   },
-  "include": ["./scripts", "./test", "./typechain"],
+  "include": ["./scripts", "./test", "./typechain", "test-archived/AIMePowerV5.spec.ts", "test-archived/Auction.test.ts", "test-archived/EIP4589ForInfluenceMining.spec.ts", "test-archived/HNFTGovernance.test.ts", "test-archived/HyperlinkAsNft.ts", "test-archived/index.ts", "test-archived/ParamiRegistry.ts", "test-archived/SignatureERC20Withdraw.spec.ts", "test-archived/AIMeAMA.spec.ts"],
   "files": ["./hardhat.config.ts"]
 }

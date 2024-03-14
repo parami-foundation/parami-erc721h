@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { HNFTGovernanceToken, HNFTGovernance, EIP5489ForInfluenceMining} from "../typechain/";
+import { HNFTGovernanceToken, HNFTGovernance, EIP5489ForInfluenceMining} from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 describe("HNFTGovernance", () => {
