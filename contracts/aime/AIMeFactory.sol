@@ -28,6 +28,7 @@ contract AIMeFactory is Ownable {
         uint256 tokenId,
         string data
     );
+    event Received(address sender, uint amount);
 
     mapping(address => uint256) public addressNonce;
 
@@ -160,5 +161,9 @@ contract AIMeFactory is Ownable {
         uint amount = address(this).balance;
         (bool success, ) = owner().call{value: amount}("");
         require(success, "Failed to send Ether");
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
     }
 }

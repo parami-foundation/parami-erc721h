@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumberish } from "ethers";
 const { expect } = require("chai");
 
-const genSig = async (
+export const genSig = async (
   signer: SignerWithAddress,
   creatorAddress: string,
   aimeAddress: string,
@@ -48,7 +48,7 @@ const genSig = async (
   return signature;
 };
 
-const genSigForUpdateNftData = async (
+export const genSigForUpdateNftData = async (
   signer: SignerWithAddress,
   creatorAddress: string,
   aimeAddress: string,

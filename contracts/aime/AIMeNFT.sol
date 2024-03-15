@@ -9,9 +9,9 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./AIMePower.sol";
 
 contract AIMeNFT is ERC721, Ownable, ERC721Holder {
-    address public protocolFeeDestination;
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
     uint256 public constant AIME_NFT_PRICE_FACTOR = 12;
+    uint256 public constant AIME_POWER_TRADE_MIN_AMOUNT = 0.0001 * 1e18;
     uint256 public CREATOR_REWARD_AMOUNT;
     uint256 public aimePowerReserved;
     address public aimePowerAddress;
@@ -77,7 +77,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         aimePowerAddress = address(aimePower);
         
         avatar = avatar_;
-        powersSupply = 0;
+        powersSupply = AIME_POWER_TRADE_MIN_AMOUNT;
         
         // mint initial nfts
         safeMint(address(this), "basic_prompt", "static", bio_, image_, 0);
@@ -87,10 +87,6 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         return _factory;
     }
 
-    function setFeeDestination(address _feeDestination) public onlyFactory() {
-        protocolFeeDestination = _feeDestination;
-    }
-
     function _calculateFeeAmount(
         uint256 amount
     ) private view returns (uint256) {
@@ -98,8 +94,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     }
 
     function _price_curve(uint256 x) private pure returns (uint256) {
-        // todo: change to a better curve
-        return x <= 0 ? 0 : (x * x / 1e18) * x / 3;
+        return x <= 0 ? 0 : (x * x / 1e9) / 6;
     }
 
     function getPrice(
@@ -108,9 +103,9 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     ) public pure returns (uint256) {
         return
             ((_price_curve(supply + amount) - _price_curve(supply)) * 1 ether) /
-            160000 /
+            16000 /
             1e18 /
-            1e18;
+            1e9;
     }
 
     function getBuyPrice(
@@ -142,7 +137,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     }
 
     function buyPowers(uint256 amount) public payable {
-        require(amount > 0, "Amount must be greater than 0");
+        require(amount >= AIME_POWER_TRADE_MIN_AMOUNT, "Amount too small");
         uint256 feeAmount = _calculateFeeAmount(amount);
         uint256 price = getBuyPrice(amount);
         uint256 priceAfterFee = getBuyPrice(amount + feeAmount);
@@ -157,7 +152,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         powersSupply += amount;
 
         // transfer fee to protocol
-        (bool success, ) = protocolFeeDestination.call{value: fee}("");
+        (bool success, ) = _factory.call{value: fee}("");
         require(success, "Unable to send funds");
 
         emit Trade(
@@ -171,7 +166,8 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     }
 
     function sellPowers(uint256 amount) public {
-        require(powersSupply >= amount, 'pool run out');
+        require(amount >= AIME_POWER_TRADE_MIN_AMOUNT, "Amount too small");
+        require(powersSupply >= amount + AIME_POWER_TRADE_MIN_AMOUNT, 'Pool run out');
 
         uint256 feeAmount = _calculateFeeAmount(amount);
         uint256 priceAfterFee = getSellPrice(amount - feeAmount);
@@ -191,7 +187,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         require(success1, "Unable to send funds");
 
         // transfer fee to protocol
-        (bool success2, ) = protocolFeeDestination.call{value: fee}("");
+        (bool success2, ) = _factory.call{value: fee}("");
         require(success2, "Unable to send funds");
 
         emit Trade(
@@ -243,6 +239,7 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     }
     
     function buyNFT(uint256 tokenId) external {
+        require(tokenId != 0, "Cannot buy the first NFT");
         AIMePower power = AIMePower(aimePowerAddress);
         address owner = _requireOwned(tokenId);
         uint256 amount;
