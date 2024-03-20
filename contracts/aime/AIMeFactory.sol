@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract AIMeFactory is Ownable {
-    address public aimeSigner;
     uint256 public protocolFee = 0.001 ether;
 
     constructor() Ownable(msg.sender) {}
@@ -31,10 +30,8 @@ contract AIMeFactory is Ownable {
     event Received(address sender, uint amount);
 
     mapping(address => uint256) public addressNonce;
-
-    function updateSigner(address _signer) external onlyOwner {
-        aimeSigner = _signer;
-    }
+    mapping(address => address) public aimeSigners;
+    mapping(string => address) public aimeAddresses;
 
     function updateProtocolFee(uint256 _fee) external onlyOwner {
         protocolFee = _fee;
@@ -43,11 +40,10 @@ contract AIMeFactory is Ownable {
     function _genMessageHash(
         address creatorAddress,
         address aimeAddress,
-        string memory aimeName,
+        uint256 tokenId,
         string memory key,
         string memory dataType,
         string memory data,
-        string memory avatar,
         string memory image,
         uint256 amount,
         uint256 nonce
@@ -57,11 +53,10 @@ contract AIMeFactory is Ownable {
                 abi.encodePacked(
                     creatorAddress,
                     aimeAddress,
-                    aimeName,
+                    tokenId,
                     key,
                     dataType,
                     data,
-                    avatar,
                     image,
                     amount,
                     nonce
@@ -69,44 +64,19 @@ contract AIMeFactory is Ownable {
             );
     }
 
-    function _genMessageHashForUpdate(
-        address creatorAddress,
-        address aimeAddress,
-        uint256 tokenId,
-        string memory data,
-        string memory image,
-        uint256 nonce
-    ) private pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    creatorAddress,
-                    aimeAddress,
-                    tokenId,
-                    data,
-                    image,
-                    nonce
-                )
-            );
-    }
-
     function createAIME(
         string memory name_,
-        string memory symbol_,
         string memory avatar_,
         string memory bio_,
         string memory image_,
-        bytes memory signature,
-        uint256 creatorRewardAmount
+        address aimeSigner
     ) public payable {
         require(msg.value >= protocolFee, "Insufficient payment");
-        bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            _genMessageHash(msg.sender, msg.sender, name_, "basic_prompt", "static", bio_, avatar_, image_, 0, addressNonce[msg.sender])
-        );
-        require(aimeSigner != address(0) && ECDSA.recover(_msgHash, signature) == aimeSigner, "Invalid signature");
-        addressNonce[msg.sender] += 1;
-
-        AIMeNFT aime = new AIMeNFT(string(abi.encodePacked("AIME:", name_)), symbol_, avatar_, bio_, image_, msg.sender, creatorRewardAmount);
+        require(aimeAddresses[name_] == address(0), "AIME already exists");
+        AIMeNFT aime = new AIMeNFT(string(abi.encodePacked("AIME:", name_)), name_, avatar_, bio_, image_);
+        address aimeAddress = address(aime);
+        aimeAddresses[name_] = aimeAddress;
+        aimeSigners[aimeAddress] = aimeSigner;
         emit AIMeCreated(msg.sender, address(aime));
     }
 
@@ -120,12 +90,15 @@ contract AIMeFactory is Ownable {
         bytes memory signature
     ) public payable {
         require(msg.value >= protocolFee, "Insufficient payment");
-        bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            _genMessageHash(msg.sender, aimeAddress, "", key, dataType, data, "", image, amount, addressNonce[msg.sender])
-        );
-        require(aimeSigner != address(0) && ECDSA.recover(_msgHash, signature) == aimeSigner, "Invalid signature");
-        addressNonce[msg.sender] += 1;
-
+        address signer = aimeSigners[aimeAddress];
+        if (signer != address(0)) {
+            bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
+                _genMessageHash(msg.sender, aimeAddress, 0, key, dataType, data, image, amount, addressNonce[msg.sender])
+            );
+            require(ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
+            addressNonce[msg.sender] += 1;
+        }
+        
         AIMeNFT aime = AIMeNFT(aimeAddress);
         uint256 tokenId = aime.safeMint(msg.sender, key, dataType, data, image, amount);
         emit AIMeNFTMinted(
@@ -147,11 +120,15 @@ contract AIMeFactory is Ownable {
         bytes memory signature
     ) public payable {
         require(msg.value >= protocolFee, "Insufficient payment");
-        bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
-            _genMessageHashForUpdate(msg.sender, aimeAddress, tokenId, data, image, addressNonce[msg.sender])
-        );
-        require(aimeSigner != address(0) && ECDSA.recover(_msgHash, signature) == aimeSigner, "Invalid signature");
-        addressNonce[msg.sender] += 1;
+        address signer = aimeSigners[aimeAddress];
+        if (signer != address(0)) {
+            bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
+                _genMessageHash(msg.sender, aimeAddress, tokenId, "", "", data, image, 0, addressNonce[msg.sender])
+            );
+            require(ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
+            addressNonce[msg.sender] += 1;
+        }
+        
         AIMeNFT aime = AIMeNFT(aimeAddress);
         aime.updateAIMeInfo(tokenId, msg.sender, data, image);
         emit AIMeNFTUpdated(msg.sender, aimeAddress, tokenId, data);

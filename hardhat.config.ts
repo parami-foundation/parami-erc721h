@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 100,
       },
       metadata: {
         bytecodeHash: "none",
@@ -59,8 +59,8 @@ const config: HardhatUserConfig = {
     optimismSepolia: {
       url: `https://optimism-sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts:
-        process.env.TESTNET_PRIVATE_KEY_AIME_TEST !== undefined
-          ? [process.env.TESTNET_PRIVATE_KEY_AIME_TEST]
+        process.env.TESTNET_PRIVATE_KEY !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY]
           : [],
     },
     goerli: {
@@ -91,6 +91,14 @@ const config: HardhatUserConfig = {
           ? [process.env.TESTNET_PRIVATE_KEY_AIME_TEST]
           : [],
     },
+    arbitrumSepolia: {
+      url: "https://sepolia-rollup.arbitrum.io/rpc",
+      chainId: 421614,
+      accounts:
+        process.env.TESTNET_PRIVATE_KEY !== undefined
+          ? [process.env.TESTNET_PRIVATE_KEY]
+          : [],
+    },
     localhost: {
       url: `http://localhost:8545`,
       accounts: [
@@ -104,7 +112,7 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.ARBISCAN_API_KEY,
     customChains: [
       {
         network: "scrollSepolia",
@@ -120,6 +128,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://sepolia-optimism.etherscan.io/api",
           browserURL: "https://sepolia-optimism.etherscan.io/",
+        },
+      },
+      {
+        network: "arbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL: "https://api-sepolia.arbiscan.io/api",
+          browserURL: "https://sepolia.arbiscan.io/",
         },
       },
     ],

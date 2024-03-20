@@ -12,7 +12,6 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
     uint256 public constant AIME_NFT_PRICE_FACTOR = 12;
     uint256 public constant AIME_POWER_TRADE_MIN_AMOUNT = 0.0001 * 1e18;
-    uint256 public CREATOR_REWARD_AMOUNT;
     uint256 public aimePowerReserved;
     address public aimePowerAddress;
     string public avatar;
@@ -61,19 +60,12 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         string memory symbol_,
         string memory avatar_,
         string memory bio_,
-        string memory image_,
-        address sender,
-        uint256 creatorRewardAmount
+        string memory image_
     ) ERC721(name_, symbol_) Ownable(msg.sender) {
-        require(creatorRewardAmount > 0 && creatorRewardAmount <= AIME_POWER_TOTAL_AMOUNT, "Creator Reward Amount out of bound.");
         _factory = _msgSender();
-
         AIMePower aimePower = new AIMePower(name_, symbol_);
-        CREATOR_REWARD_AMOUNT = creatorRewardAmount;
-        aimePower.mint(address(this), creatorRewardAmount);
-        // todo: mint tokens to creator?
-        // aimePower.mint(sender, AIME_POWER_TOTAL_AMOUNT - creatorRewardAmount);
-        aimePowerReserved = creatorRewardAmount;
+        aimePower.mint(address(this), AIME_POWER_TOTAL_AMOUNT);
+        aimePowerReserved = AIME_POWER_TOTAL_AMOUNT;
         aimePowerAddress = address(aimePower);
         
         avatar = avatar_;
@@ -264,6 +256,8 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
         _requireOwned(tokenId);
 
         string memory imageUrl = tokenContents[tokenId].image;
+        string memory chatUrl = string(abi.encodePacked('https://app.aime.bot/chat/', Strings.toHexString(uint256(uint160(address(this))), 20), '/', tokenId.toString()));
+        string memory tradeUrl = string(abi.encodePacked('https://aime.parami.io/#/?address=', Strings.toHexString(uint256(uint160(address(this))), 20), '&tokenId=', tokenId.toString()));
 
         // todo: add traits
         string memory json = Base64.encode(
@@ -276,7 +270,9 @@ contract AIMeNFT is ERC721, Ownable, ERC721Holder {
                         tokenId.toString(),
                         '", "description": "A block of content of ',
                         name(),
-                        '. Go to https://app.aime.bot/chat/',Strings.toHexString(uint256(uint160(address(this))), 20), '/', tokenId.toString(), '", "amount": "',
+                        '. Chat with this AIME ', chatUrl,
+                        ' or trade at ', tradeUrl,
+                        '", "amount": "',
                         tokenContents[tokenId].amount.toString(),
                         '", "image": "',
                         imageUrl,

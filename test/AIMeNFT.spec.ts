@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { AIMeFactory, AIMeNFT, AIMePower } from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { genSig, genSigForUpdateNftData } from "./AIMeFactory.spec";
+import { genSig } from "./AIMeFactory.spec";
 const { expect } = require("chai");
 
 describe("AIMeNFT", () => {
@@ -13,6 +13,7 @@ describe("AIMeNFT", () => {
   let signer3: SignerWithAddress;
   let signer4: SignerWithAddress;
   const protocolFeeEthValue = "0.001";
+  const powerTotalAmount = ethers.utils.parseEther("1000000");
 
   beforeEach("init", async () => {
     [owner, aimeSigner, signer3, signer4] = await ethers.getSigners();
@@ -24,8 +25,8 @@ describe("AIMeNFT", () => {
 
   describe("Contract deployed", () => {
     it("aime factory contract deployed with owner", async () => {
-      const aimeSigner = await aimeFactoryContract.aimeSigner();
-      expect(aimeSigner).eq(ethers.constants.AddressZero);
+      // const aimeSigner = await aimeFactoryContract.aimeSigner();
+      // expect(aimeSigner).eq(ethers.constants.AddressZero);
       const ownerAddress = await owner.getAddress();
       const contractOwner = await aimeFactoryContract.owner();
       expect(contractOwner).eq(ownerAddress);
@@ -39,48 +40,38 @@ describe("AIMeNFT", () => {
     let data = "Hello World";
     let image = "image_url";
     let avatar = "avatar_url";
-    let creatorRewardAmountamount = ethers.utils.parseEther("500000");
 
     beforeEach("init AIME NFT contract", async () => {
-      // set signer
-      const txSigner = await aimeFactoryContract
-        .connect(owner)
-        .updateSigner(aimeSigner.address);
-      await txSigner.wait();
-      const newSigner = await aimeFactoryContract.aimeSigner();
-      expect(newSigner).eq(aimeSigner.address);
+      // // set signer
+      // const txSigner = await aimeFactoryContract
+      //   .connect(owner)
+      //   .updateSigner(aimeSigner.address);
+      // await txSigner.wait();
+      // const newSigner = await aimeFactoryContract.aimeSigner();
+      // expect(newSigner).eq(aimeSigner.address);
 
       // create AIME NFT by signer3
-      const currentNonce = await aimeFactoryContract.addressNonce(
-        signer3.address
-      );
-      const sig = await genSig(
-        aimeSigner,
-        signer3.address,
-        signer3.address,
-        name,
-        key,
-        type,
-        data,
-        avatar,
-        image,
-        0,
-        currentNonce
-      );
+      // const currentNonce = await aimeFactoryContract.addressNonce(
+      //   signer3.address
+      // );
+      // const sig = await genSig(
+      //   aimeSigner,
+      //   signer3.address,
+      //   signer3.address,
+      //   name,
+      //   key,
+      //   type,
+      //   data,
+      //   avatar,
+      //   image,
+      //   0,
+      //   currentNonce
+      // );
       const tx = await aimeFactoryContract
         .connect(signer3)
-        .createAIME(
-          name,
-          name,
-          avatar,
-          data,
-          image,
-          sig,
-          creatorRewardAmountamount,
-          {
-            value: ethers.utils.parseEther(protocolFeeEthValue),
-          }
-        );
+        .createAIME(name, avatar, data, image, aimeSigner.address, {
+          value: ethers.utils.parseEther(protocolFeeEthValue),
+        });
       const receipt = await tx.wait();
       const aimeCreatedEvent = receipt.events?.find(
         (e: any) => e.event === "AIMeCreated"
@@ -102,12 +93,12 @@ describe("AIMeNFT", () => {
 
     it("AIME NFT contracts deployed", async () => {
       const aimePowerReserved = await aimeNFTContract.aimePowerReserved();
-      expect(aimePowerReserved).eq(creatorRewardAmountamount);
+      expect(aimePowerReserved).eq(powerTotalAmount);
       const factoryAddress = await aimeNFTContract.factory();
       expect(factoryAddress).eq(aimeFactoryContract.address);
 
       const powerTotalSupply = await aimePowerContract.totalSupply();
-      expect(powerTotalSupply).eq(creatorRewardAmountamount);
+      expect(powerTotalSupply).eq(powerTotalAmount);
 
       const currentPowerSupply = await aimeNFTContract.powersSupply();
       const tradeMinAmount =
@@ -151,11 +142,10 @@ describe("AIMeNFT", () => {
           aimeSigner,
           signer3.address,
           aimeNFTContract.address,
-          "",
+          0,
           key,
           type,
           data,
-          "",
           image,
           nft_price,
           currentNonce
@@ -196,13 +186,16 @@ describe("AIMeNFT", () => {
         const currentNonceFor4 = await aimeFactoryContract.addressNonce(
           signer4.address
         );
-        const sigFor4 = await genSigForUpdateNftData(
+        const sigFor4 = await genSig(
           aimeSigner,
           signer4.address,
           aimeNFTContract.address,
           tokenId,
+          "",
+          "",
           updateData,
           updateImage,
+          0,
           currentNonceFor4
         );
 
@@ -222,13 +215,16 @@ describe("AIMeNFT", () => {
         const currentNonceFor3 = await aimeFactoryContract.addressNonce(
           signer3.address
         );
-        const sigFor3 = await genSigForUpdateNftData(
+        const sigFor3 = await genSig(
           aimeSigner,
           signer3.address,
           aimeNFTContract.address,
           tokenId,
+          "",
+          "",
           updateData,
           updateImage,
+          0,
           currentNonceFor3
         );
         const tx = await aimeFactoryContract
