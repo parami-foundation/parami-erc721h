@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 100,
+        runs: 200,
       },
       metadata: {
         bytecodeHash: "none",
@@ -98,6 +98,9 @@ const config: HardhatUserConfig = {
         process.env.TESTNET_PRIVATE_KEY !== undefined
           ? [process.env.TESTNET_PRIVATE_KEY]
           : [],
+      allowUnlimitedContractSize: true,
+      gas: 12000000,
+      blockGasLimit: 0x1fffffffffffff,
     },
     localhost: {
       url: `http://localhost:8545`,
