@@ -21,7 +21,12 @@ contract AIMeFactoryV2 is Ownable {
         string data,
         uint256 amount
     );
-    event AIMePowerWithdraw(address aimeAddress, address to, uint256 amount);
+    event AIMeNFTUpdated(
+        address nftOwner,
+        address aimeAddress,
+        uint256 tokenId,
+        string data
+    );
     event Received(address sender, uint amount);
 
     mapping(address => uint256) public addressNonce;
@@ -109,13 +114,29 @@ contract AIMeFactoryV2 is Ownable {
         );
     }
 
-    // todo: update NFT data
-
-    function withdrawPowers(address payable  aimeAddress, uint256 amount, bytes memory signature) public {
-        // todo: validate signature
+    function updateAIMeNFT(
+        address payable aimeAddress,
+        uint256 tokenId,
+        string memory data,
+        string memory image,
+        bytes memory signature
+    ) public payable {
+        require(msg.value >= protocolFee, "Insufficient payment");
+        address signer = aimeSigners[aimeAddress];
+        if (signer != address(0)) {
+            bytes32 _msgHash = MessageHashUtils.toEthSignedMessageHash(
+                _genMessageHash(msg.sender, aimeAddress, tokenId, "", "", data, image, 0, addressNonce[msg.sender])
+            );
+            require(ECDSA.recover(_msgHash, signature) == signer, "Invalid signature");
+            addressNonce[msg.sender] += 1;
+        }
+        
         AIMeNFTV2 aime = AIMeNFTV2(aimeAddress);
-        aime.withdrawPowers(msg.sender, amount);
-        emit AIMePowerWithdraw(aimeAddress, msg.sender, amount);
+        aime.updateAIMeInfo(tokenId, msg.sender, data, image);
+
+        (bool success, ) = aimeAddress.call{value: msg.value}("");
+        require(success, "Failed to send Ether");
+        emit AIMeNFTUpdated(msg.sender, aimeAddress, tokenId, data);
     }
 
     function withdrawFee() public onlyOwner {

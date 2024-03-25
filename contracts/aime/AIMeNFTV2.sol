@@ -12,7 +12,6 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
     uint256 public constant AIME_POWER_SWAP_INIT_AMOUNT = 100000 * 1e18;
     uint256 public constant AIME_NFT_PRICE_FACTOR = 12;
-    uint256 public constant AIME_POWER_TRADE_MIN_AMOUNT = 0.0001 * 1e18;
     uint256 public constant NFT_HOLDING_PERIOD = 30 days;
     uint256 public aimePowerReserved;
     uint256 public swapPowerBalance;
@@ -22,8 +21,6 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
     using Strings for uint256;
     uint256 private _nextTokenId;
     mapping(uint256 => AIMeInfo) public tokenContents;
-
-    mapping(address => uint256) public powerBalance;
 
     error AIMeNFTUnauthorizedAccount(address account);
     event Trade(
@@ -116,15 +113,15 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
     }
 
     function buyPowers(uint256 amount) public payable {
+        require(amount < swapPowerBalance, "Insufficient power balance");
         // eth amount
-        uint256 ethAmount = ((address(this).balance - msg.value) * amount) / (swapPowerBalance - amount);
+        uint256 ethAmount = ((address(this).balance - msg.value) * amount) /
+            (swapPowerBalance - amount);
         require(msg.value == ethAmount, "Incorrect payment");
 
         // transfer power to user
-        // store power in contract for AI fee
-        powerBalance[msg.sender] += amount;
-        // AIMePower power = AIMePower(aimePowerAddress);
-        // power.transfer(msg.sender, amount);
+        AIMePower power = AIMePower(aimePowerAddress);
+        power.transfer(msg.sender, amount);
         swapPowerBalance -= amount;
         emit Trade(msg.sender, true, amount, ethAmount, 0, 0);
     }
@@ -153,13 +150,6 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
         require(success, "Unable to send funds");
 
         emit Trade(msg.sender, false, amount, ethAmount, 0, 0);
-    }
-
-    function withdrawPowers(address to, uint256 amount) public onlyFactory() {
-        require(powerBalance[to] >= amount, "Insufficient Power balance");
-        powerBalance[to] -= amount;
-        AIMePower power = AIMePower(aimePowerAddress);
-        power.transfer(to, amount);
     }
 
     function safeMint(
@@ -212,11 +202,9 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
         } else {
             amount = tokenContents[tokenId].amount;
         }
-        
-        // store user's power in contract
-        powerBalance[msg.sender] += amount;
-        // AIMePower power = AIMePower(aimePowerAddress);
-        // power.transfer(msg.sender, amount);
+
+        AIMePower power = AIMePower(aimePowerAddress);
+        power.transfer(msg.sender, amount);
         emit TradeNFT(msg.sender, address(this), tokenId, amount);
     }
 
@@ -240,12 +228,7 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
             "allowance not enough"
         );
 
-        // store user's power in contract
-        if (owner != address(this)) {
-            powerBalance[owner] += amount;
-        } else {
-            power.transferFrom(msg.sender, owner, amount);
-        }
+        power.transferFrom(msg.sender, owner, amount);
 
         _safeTransfer(owner, msg.sender, tokenId);
         tokenContents[tokenId].timestamp = block.timestamp;
@@ -258,11 +241,7 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
         _requireOwned(tokenId);
 
         string memory tokenName = string(
-            abi.encodePacked(
-                name(),
-                " #",
-                tokenId.toString()
-            )
+            abi.encodePacked(name(), " #", tokenId.toString())
         );
         string memory imageUrl = tokenContents[tokenId].image;
         string memory tradeUrl = string(
@@ -276,11 +255,17 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
 
         string memory attributes = string(
             abi.encodePacked(
-                '[',
-                '{"trait_type": "type","value": "',tokenContents[tokenId].dataType,'"},',
-                '{"trait_type": "key","value": "',tokenContents[tokenId].key,'"},',
-                '{"trait_type": "data","value": "',tokenContents[tokenId].data,'"}',
-                ']'
+                "[",
+                '{"trait_type": "type","value": "',
+                tokenContents[tokenId].dataType,
+                '"},',
+                '{"trait_type": "key","value": "',
+                tokenContents[tokenId].key,
+                '"},',
+                '{"trait_type": "data","value": "',
+                tokenContents[tokenId].data,
+                '"}',
+                "]"
             )
         );
 
@@ -288,12 +273,15 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
             bytes(
                 string(
                     abi.encodePacked(
-                        '{"name": "', tokenName,
+                        '{"name": "',
+                        tokenName,
                         '", "description": "A block of content of ',
                         name(),
                         ". Trade at: ",
                         tradeUrl,
-                        '", "attributes":', attributes,', "amount": "',
+                        '", "attributes":',
+                        attributes,
+                        ', "amount": "',
                         tokenContents[tokenId].amount.toString(),
                         '", "image": "',
                         imageUrl,
