@@ -9,13 +9,15 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./AIMePower.sol";
 
 contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
+    // The canonical permit2 contract.
+    IPermit2 public immutable PERMIT2;
+    AIMePower public immutable aimePower;
     uint256 public constant AIME_POWER_TOTAL_AMOUNT = 1000000 * 1e18;
     uint256 public constant AIME_POWER_SWAP_INIT_AMOUNT = 100000 * 1e18;
     uint256 public constant AIME_NFT_PRICE_FACTOR = 12;
     uint256 public constant NFT_HOLDING_PERIOD = 30 days;
     uint256 public aimePowerReserved;
     uint256 public swapPowerBalance;
-    address public aimePowerAddress;
     string public avatar;
     address private _factory;
     using Strings for uint256;
@@ -60,9 +62,10 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
         string memory bio_,
         string memory image_
     ) ERC721(name_, symbol_) Ownable(msg.sender) {
+        // todo: pass in permit2 address
+        PERMIT2 = IPermit2(address(0x000000000022D473030F116dDEE9F6B43aC78BA3));
         _factory = _msgSender();
-        AIMePower aimePower = new AIMePower(name_, symbol_);
-        aimePowerAddress = address(aimePower);
+        aimePower = new AIMePower(name_, symbol_);
         aimePower.mint(address(this), AIME_POWER_TOTAL_AMOUNT);
 
         swapPowerBalance = AIME_POWER_SWAP_INIT_AMOUNT;
@@ -74,6 +77,39 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
 
         // mint initial nft
         safeMint(address(this), "basic_prompt", "static", bio_, image_, 0);
+    }
+
+    function transferPowerFrom(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) private {
+        PERMIT2.permitTransferFrom(
+            // The permit message.
+            IPermit2.PermitTransferFrom({
+                permitted: IPermit2.TokenPermissions({
+                    token: aimePower,
+                    amount: amount
+                }),
+                nonce: nonce,
+                deadline: deadline
+            }),
+            // The transfer recipient and amount.
+            IPermit2.SignatureTransferDetails({
+                to: to,
+                requestedAmount: amount
+            }),
+            // The owner of the tokens, which must also be
+            // the signer of the message, otherwise this call
+            // will fail.
+            from,
+            // The packed signature that was the result of signing
+            // the EIP712 hash of `permit`.
+            signature
+        );
     }
 
     function factory() public view virtual returns (address) {
@@ -117,32 +153,35 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
         // eth amount
         uint256 ethAmount = ((address(this).balance - msg.value) * amount) /
             (swapPowerBalance - amount);
+        require(ethAmount > 0, "Amount too small");
         require(msg.value == ethAmount, "Incorrect payment");
 
         // transfer power to user
-        AIMePower power = AIMePower(aimePowerAddress);
-        power.transfer(msg.sender, amount);
+        aimePower.transfer(msg.sender, amount);
         swapPowerBalance -= amount;
         emit Trade(msg.sender, true, amount, ethAmount, 0, 0);
     }
 
-    function sellPowers(uint256 amount) public {
-        // transfer power from user
-        // todo: transfer token without approve?
-        AIMePower power = AIMePower(aimePowerAddress);
-        require(power.balanceOf(msg.sender) >= amount, "balance not enough");
-        require(
-            power.allowance(msg.sender, address(this)) >= amount,
-            "allowance not enough"
-        );
-
+    function sellPowers(
+        uint256 amount,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) public {
         // eth amount
         uint256 ethAmount = getAmountOut(amount, false);
         require(ethAmount > 0, "Amount too small");
         require(address(this).balance >= ethAmount, "Insufficient ETH balance");
 
         // transfer power
-        power.transferFrom(msg.sender, address(this), amount);
+        transferPowerFrom(
+            msg.sender,
+            address(this),
+            amount,
+            nonce,
+            deadline,
+            signature
+        );
         swapPowerBalance += amount;
 
         // transfer eth to user
@@ -198,19 +237,23 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
         uint256 amount;
 
         if (duration < NFT_HOLDING_PERIOD) {
-            amount = duration / NFT_HOLDING_PERIOD;
+            amount = tokenContents[tokenId].amount * duration / NFT_HOLDING_PERIOD;
         } else {
             amount = tokenContents[tokenId].amount;
         }
 
-        AIMePower power = AIMePower(aimePowerAddress);
-        power.transfer(msg.sender, amount);
+        // AIMePower power = AIMePower(aimePowerAddress);
+        aimePower.transfer(msg.sender, amount);
         emit TradeNFT(msg.sender, address(this), tokenId, amount);
     }
 
-    function buyNFT(uint256 tokenId) external {
+    function buyNFT(
+        uint256 tokenId,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external {
         require(tokenId != 0, "Cannot buy the first NFT");
-        AIMePower power = AIMePower(aimePowerAddress);
         address owner = _requireOwned(tokenId);
         uint256 amount;
         if (owner == address(this)) {
@@ -222,13 +265,15 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
             tokenContents[tokenId].currentAmount = amount;
         }
 
-        require(power.balanceOf(msg.sender) >= amount, "balance not enough");
-        require(
-            power.allowance(msg.sender, address(this)) >= amount,
-            "allowance not enough"
+        // transfer power
+        transferPowerFrom(
+            msg.sender,
+            owner,
+            amount,
+            nonce,
+            deadline,
+            signature
         );
-
-        power.transferFrom(msg.sender, owner, amount);
 
         _safeTransfer(owner, msg.sender, tokenId);
         tokenContents[tokenId].timestamp = block.timestamp;
@@ -300,4 +345,42 @@ contract AIMeNFTV2 is ERC721, Ownable, ERC721Holder {
     receive() external payable {
         emit Received(msg.sender, msg.value);
     }
+}
+
+// Minimal Permit2 interface, derived from
+// https://github.com/Uniswap/permit2/blob/main/src/interfaces/ISignatureTransfer.sol
+interface IPermit2 {
+    // Token and amount in a permit message.
+    struct TokenPermissions {
+        // Token to transfer.
+        IERC20 token;
+        // Amount to transfer.
+        uint256 amount;
+    }
+
+    // The permit2 message.
+    struct PermitTransferFrom {
+        // Permitted token and amount.
+        TokenPermissions permitted;
+        // Unique identifier for this permit.
+        uint256 nonce;
+        // Expiration for this permit.
+        uint256 deadline;
+    }
+
+    // Transfer details for permitTransferFrom().
+    struct SignatureTransferDetails {
+        // Recipient of tokens.
+        address to;
+        // Amount to transfer.
+        uint256 requestedAmount;
+    }
+
+    // Consume a permit2 message and transfer tokens.
+    function permitTransferFrom(
+        PermitTransferFrom calldata permit,
+        SignatureTransferDetails calldata transferDetails,
+        address owner,
+        bytes calldata signature
+    ) external;
 }

@@ -69,6 +69,7 @@ contract AIMeFactoryV2 is Ownable {
     ) public payable {
         require(msg.value >= protocolFee * 10, "Insufficient payment");
         require(aimeAddresses[name_] == address(0), "AIME already exists");
+        // todo: pass in permit2 address
         AIMeNFTV2 aime = new AIMeNFTV2(string(abi.encodePacked("AIME:", name_)), name_, avatar_, bio_, image_);
         address payable aimeAddress = payable(address(aime));
         aimeAddresses[name_] = aimeAddress;
