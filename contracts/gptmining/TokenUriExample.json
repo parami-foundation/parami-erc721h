@@ -1,0 +1,10 @@
+{
+  "name": "GPTMinerInscription #0",
+  "description": "World's first token inscribed by GPT.",
+  "attributes": [
+    {
+      "trait_type": "Amount",
+      "value": "1500"
+    }
+  ]
+}
