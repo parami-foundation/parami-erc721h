@@ -69,18 +69,19 @@ contract AIMeFactoryV2 is Ownable {
     ) public payable {
         require(msg.value >= protocolFee * 10, "Insufficient payment");
         require(aimeAddresses[name_] == address(0), "AIME already exists");
-        // todo: pass in permit2 address
         AIMeNFTV2 aime = new AIMeNFTV2(string(abi.encodePacked("AIME:", name_)), name_, avatar_, bio_, image_);
-        address payable aimeAddress = payable(address(aime));
+        address aimeAddress = address(aime);
         aimeAddresses[name_] = aimeAddress;
         aimeSigners[aimeAddress] = aimeSigner;
-        (bool success, ) = aimeAddress.call{value: msg.value}("");
+
+        address payable aimePower = payable(aime.aimePower());
+        (bool success, ) = aimePower.call{value: msg.value}("");
         require(success, "Failed to send Ether");
         emit AIMeCreated(msg.sender, address(aime));
     }
 
     function mintAIMeNFT(
-        address payable aimeAddress,
+        address aimeAddress,
         string memory key,
         string memory dataType,
         string memory data,
@@ -101,7 +102,8 @@ contract AIMeFactoryV2 is Ownable {
         AIMeNFTV2 aime = AIMeNFTV2(aimeAddress);
         uint256 tokenId = aime.safeMint(msg.sender, key, dataType, data, image, amount);
         
-        (bool success, ) = aimeAddress.call{value: msg.value}("");
+        address payable aimePower = payable(aime.aimePower());
+        (bool success, ) = aimePower.call{value: msg.value}("");
         require(success, "Failed to send Ether");
         
         emit AIMeNFTMinted(
@@ -116,7 +118,7 @@ contract AIMeFactoryV2 is Ownable {
     }
 
     function updateAIMeNFT(
-        address payable aimeAddress,
+        address aimeAddress,
         uint256 tokenId,
         string memory data,
         string memory image,
@@ -135,18 +137,11 @@ contract AIMeFactoryV2 is Ownable {
         AIMeNFTV2 aime = AIMeNFTV2(aimeAddress);
         aime.updateAIMeInfo(tokenId, msg.sender, data, image);
 
-        (bool success, ) = aimeAddress.call{value: msg.value}("");
+        address payable aimePower = payable(aime.aimePower());
+        (bool success, ) = aimePower.call{value: msg.value}("");
         require(success, "Failed to send Ether");
         emit AIMeNFTUpdated(msg.sender, aimeAddress, tokenId, data);
     }
 
-    function withdrawFee() public onlyOwner {
-        uint amount = address(this).balance;
-        (bool success, ) = owner().call{value: amount}("");
-        require(success, "Failed to send Ether");
-    }
-
-    receive() external payable {
-        emit Received(msg.sender, msg.value);
-    }
+    receive() external payable {}
 }
